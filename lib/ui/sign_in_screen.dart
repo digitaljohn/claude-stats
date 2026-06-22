@@ -173,7 +173,7 @@ class _SignInScreenState extends State<SignInScreen> {
               enableSuggestions: false,
               onSubmitted: (_) => _connectPasted(),
               style: AppText.mono(AppColors.textPrimary, size: 12),
-              cursorColor: AppColors.accent,
+              cursorColor: AppColors.textSecondary,
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding:
@@ -243,7 +243,9 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onTap != null;
-    const fg = AppColors.onAccent;
+    // Monochrome CTA: cream fill + dark ink text, to match the app's restrained
+    // warm-grey palette (clay is reserved for sparse accents, not a big fill).
+    const fg = AppColors.ink;
     return MouseRegion(
       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: (_) => setState(() => _hover = true),
@@ -254,8 +256,8 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
           duration: const Duration(milliseconds: 130),
           decoration: BoxDecoration(
             color: enabled
-                ? (_hover ? AppColors.accentHover : AppColors.accent)
-                : AppColors.accent.withValues(alpha: 0.3),
+                ? (_hover ? const Color(0xFFFFFFFF) : AppColors.textPrimary)
+                : AppColors.textPrimary.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(AppDims.radiusSm),
           ),
           alignment: Alignment.center,

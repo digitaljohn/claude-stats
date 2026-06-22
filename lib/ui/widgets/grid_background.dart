@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../theme/claude_theme.dart';
 
 /// Claude-brand backdrop: warm charcoal ([AppColors.ink]) with a faint
-/// warm-cream hairline grid, a soft clay top glow to lift overlaid content, and
-/// a bottom vignette. Static — no motion, no glitch.
+/// warm-cream hairline grid, a soft neutral top glow to lift overlaid content,
+/// and a bottom vignette. Static — no motion, no glitch.
 class GridBackground extends StatelessWidget {
   const GridBackground({super.key, this.cell = 34});
 
@@ -48,7 +48,7 @@ class _GridPainter extends CustomPainter {
       Offset.zero & size,
       Paint()
         ..shader = RadialGradient(
-          colors: const [Color(0x1AD97757), Color(0x00000000)], // faint clay glow
+          colors: const [Color(0x12FAF9F5), Color(0x00000000)], // faint neutral lift
         ).createShader(glowRect),
     );
 
