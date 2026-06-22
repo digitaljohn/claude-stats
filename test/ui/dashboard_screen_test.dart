@@ -53,8 +53,10 @@ void main() {
     expect(find.text('EXTRA USAGE'), findsOneWidget);
     expect(find.text('DEMO DATA'), findsOneWidget);
 
-    // Toggle the chart series to WEEKLY.
+    // Toggle the chart series to WEEKLY and zoom to 1 day.
     await tester.tap(find.text('WEEKLY').first);
+    await tester.pump();
+    await tester.tap(find.text('1D'));
     await tester.pump();
 
     // Open and close the settings panel. Title-bar buttons sit inside a
