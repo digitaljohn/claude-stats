@@ -170,4 +170,28 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('coffee button opens Buy Me a Coffee in the browser',
+      (tester) async {
+    await useTallSurface(tester);
+    final launched = <Uri>[];
+    final c = readyController(
+      mode: AppMode.demo,
+      usage: screenSnapshot(),
+      history: someHistory(),
+      urlLauncher: (u) async {
+        launched.add(u);
+        return true;
+      },
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
+
+    await tester.tap(find.widgetWithIcon(TitleBarButton, Icons.coffee_rounded));
+    await tester.pump(const Duration(milliseconds: 350)); // DragToMoveArea arena
+    expect(launched.single.toString(), 'https://www.buymeacoffee.com/digitaljohn');
+
+    await tester.pumpWidget(const SizedBox());
+  });
 }
