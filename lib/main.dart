@@ -1,0 +1,139 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:local_notifier/local_notifier.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:window_manager/window_manager.dart';
+
+import 'state/app_controller.dart';
+import 'theme/claude_theme.dart';
+import 'ui/dashboard_screen.dart';
+import 'ui/mini_screen.dart';
+import 'ui/sign_in_screen.dart';
+import 'ui/widgets/window_scaffold.dart';
+
+/// When set via `--dart-define=shotpath=/abs/file.png`, the app captures its
+/// content (real GPU shaders included) to that PNG a moment after launch and
+/// exits — a self-contained visual-verification harness.
+const String _shotPath = String.fromEnvironment('shotpath');
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await windowManager.ensureInitialized();
+  const options = WindowOptions(
+    size: Size(420, 800),
+    minimumSize: Size(380, 560),
+    maximumSize: Size(560, 1200),
+    center: true,
+    backgroundColor: AppColors.ink,
+    title: 'claude·stats',
+  );
+  await windowManager.waitUntilReadyToShow(options, () async {
+    // Integrated chrome: hide the native title bar but keep the traffic-light
+    // buttons floating over a full-size content view.
+    await windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: true,
+    );
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  try {
+    await localNotifier.setup(appName: 'claude·stats');
+  } catch (_) {/* notifications are best-effort */}
+
+  runApp(ClaudeStatsApp(controller: AppController()));
+}
+
+class ClaudeStatsApp extends StatefulWidget {
+  const ClaudeStatsApp({super.key, required this.controller});
+  final AppController controller;
+
+  @override
+  State<ClaudeStatsApp> createState() => _ClaudeStatsAppState();
+}
+
+class _ClaudeStatsAppState extends State<ClaudeStatsApp> {
+  final GlobalKey _captureKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.bootstrap();
+    if (_shotPath.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future<void>.delayed(const Duration(milliseconds: 2600), _capture);
+      });
+    }
+  }
+
+  Future<void> _capture() async {
+    try {
+      final boundary =
+          _captureKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final bytes =
+          (await image.toByteData(format: ui.ImageByteFormat.png))!
+              .buffer
+              .asUint8List();
+      // Sandbox blocks arbitrary paths, so always drop a copy in the app's
+      // container (the harness copies it out); also try the requested path
+      // directly in case the sandbox is off.
+      final dir = await getApplicationSupportDirectory();
+      File('${dir.path}/__shot.png').writeAsBytesSync(bytes);
+      try {
+        File(_shotPath).writeAsBytesSync(bytes);
+      } catch (_) {}
+    } catch (e) {
+      stderr.writeln('capture failed: $e');
+    }
+    exit(0);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'claude·stats',
+      debugShowCheckedModeBanner: false,
+      theme: buildClaudeTheme(),
+      home: RepaintBoundary(
+        key: _captureKey,
+        child: ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, _) {
+            switch (widget.controller.mode) {
+              case AppMode.loading:
+                return const WindowScaffold(
+                  child: Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.accent),
+                    ),
+                  ),
+                );
+              case AppMode.signedOut:
+                return SignInScreen(controller: widget.controller);
+              case AppMode.demo:
+              case AppMode.live:
+                return widget.controller.settings.mini
+                    ? MiniScreen(controller: widget.controller)
+                    : DashboardScreen(controller: widget.controller);
+            }
+          },
+        ),
+      ),
+    );
+  }
+}

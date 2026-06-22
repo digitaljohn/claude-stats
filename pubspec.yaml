@@ -1,0 +1,48 @@
+name: claude_stats
+description: "Claude usage widget — a minimal, Claude-themed desktop monitor."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Desktop window control: hidden title bar w/ traffic lights, always-on-top,
+  # sizing, drag-to-move. Same package the RØDECaster app uses.
+  window_manager: ^0.4.3
+
+  # App-private storage for the Claude sessionKey + settings + history,
+  # written to the sandbox container (no fragile Keychain entitlements).
+  path_provider: ^2.1.5
+
+  # Claude.ai usage API.
+  http: ^1.2.2
+
+  # Reset-countdown / clock formatting (12h / 24h).
+  intl: ^0.20.2
+
+  # Claude-family typography (Inter for UI, a serif for the wordmark,
+  # a mono for technical readouts). Matches the app's google_fonts convention.
+  google_fonts: ^6.2.1
+
+  # Best-effort desktop notifications at usage thresholds.
+  local_notifier: ^0.1.6
+
+  # Embedded claude.ai login (captures the sessionKey cookie automatically).
+  flutter_inappwebview: ^6.1.5
+
+  # AES-CBC + PBKDF2 for decrypting Chromium cookie stores on import.
+  pointycastle: ^3.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

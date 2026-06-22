@@ -1,0 +1,221 @@
+import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
+
+import '../../theme/claude_theme.dart';
+
+/// App shell with the integrated macOS title bar: a hidden native title bar
+/// (configured in main.dart) leaves the traffic-light buttons floating at the
+/// top-left, and this bar reserves space for them, hosts the wordmark + action
+/// buttons, and is itself a drag-to-move region.
+class WindowScaffold extends StatelessWidget {
+  const WindowScaffold({
+    super.key,
+    required this.child,
+    this.background,
+    this.actions = const [],
+    this.titleBarColor,
+    this.showBorder = true,
+    this.titleWidget,
+  });
+
+  final Widget child;
+
+  /// Title-bar lockup; defaults to the [Wordmark]. Pass a minimal widget in
+  /// mini mode.
+  final Widget? titleWidget;
+
+  /// Optional full-bleed background painted behind everything (e.g. the
+  /// glitch hero). The title bar floats transparently over it.
+  final Widget? background;
+
+  final List<Widget> actions;
+  final Color? titleBarColor;
+  final bool showBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.ink,
+      child: Stack(
+        children: [
+          if (background != null) Positioned.fill(child: background!),
+          Column(
+            children: [
+              _TitleBar(
+                actions: actions,
+                color: titleBarColor,
+                showBorder: showBorder,
+                title: titleWidget ?? const Wordmark(),
+              ),
+              Expanded(child: child),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TitleBar extends StatelessWidget {
+  const _TitleBar({
+    required this.actions,
+    required this.title,
+    this.color,
+    this.showBorder = true,
+  });
+
+  final List<Widget> actions;
+  final Widget title;
+  final Color? color;
+  final bool showBorder;
+
+  /// Vertical band that the title content is centred in, so it lines up with
+  /// the native macOS traffic-light buttons (which sit near the top, not the
+  /// centre of the taller bar). Content centre = [_trafficLightBand] / 2.
+  /// Nudge this if the lights ever sit higher/lower on a given macOS version.
+  static const double _trafficLightBand = 30;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragToMoveArea(
+      child: Container(
+        height: AppDims.titleBarHeight,
+        decoration: BoxDecoration(
+          color: color ?? Colors.transparent,
+          border: showBorder
+              ? const Border(bottom: BorderSide(color: AppColors.border))
+              : null,
+        ),
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          height: _trafficLightBand,
+          child: Row(
+            children: [
+              // Clearance for the native traffic-light cluster (~70px wide).
+              const SizedBox(width: 80),
+              title,
+              const Spacer(),
+              ...actions,
+              const SizedBox(width: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "claude / stats" lockup — a minimal white triangle mark + slash separator.
+class Wordmark extends StatelessWidget {
+  const Wordmark({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CustomPaint(size: Size(12, 11), painter: _TriangleMark()),
+        const SizedBox(width: 10),
+        Text('claude', style: AppText.wordmark(AppColors.textPrimary)),
+        const SizedBox(width: 6),
+        Text('/', style: AppText.wordmark(AppColors.textFaint)),
+        const SizedBox(width: 6),
+        Text('stats', style: AppText.wordmark(AppColors.textSecondary)),
+      ],
+    );
+  }
+}
+
+class _TriangleMark extends CustomPainter {
+  const _TriangleMark();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = AppColors.textPrimary);
+  }
+
+  @override
+  bool shouldRepaint(_TriangleMark oldDelegate) => false;
+}
+
+/// A square ghost icon button used in the title bar (refresh, settings…).
+class TitleBarButton extends StatefulWidget {
+  const TitleBarButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.tooltip,
+    this.active = false,
+    this.spin = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
+  final bool active;
+  final bool spin;
+
+  @override
+  State<TitleBarButton> createState() => _TitleBarButtonState();
+}
+
+class _TitleBarButtonState extends State<TitleBarButton>
+    with SingleTickerProviderStateMixin {
+  bool _hover = false;
+  late final AnimationController _spin =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+
+  @override
+  void didUpdateWidget(TitleBarButton old) {
+    super.didUpdateWidget(old);
+    if (widget.spin && !_spin.isAnimating) {
+      _spin.repeat();
+    } else if (!widget.spin && _spin.isAnimating) {
+      _spin.stop();
+      _spin.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.active || _hover
+        ? AppColors.accent
+        : AppColors.textSecondary;
+    Widget icon = Icon(widget.icon, size: 16, color: color);
+    if (widget.spin) {
+      icon = RotationTransition(turns: _spin, child: icon);
+    }
+    final button = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: _hover ? AppColors.hover : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Center(child: icon),
+        ),
+      ),
+    );
+    return widget.tooltip == null
+        ? button
+        : Tooltip(message: widget.tooltip!, child: button);
+  }
+}
