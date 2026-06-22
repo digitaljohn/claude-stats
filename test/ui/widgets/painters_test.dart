@@ -75,43 +75,58 @@ void main() {
   });
 
   group('ChartColumns painter', () {
-    Widget chart(List<double> values, {double w = 358, double h = 150}) => wrap(
-          ChartColumns(values: values, warnAt: 0.75, dangerAt: 0.90),
+    Widget chart(List<double?> bins,
+            {int binsPerDay = 4, double w = 358, double h = 150}) =>
+        wrap(
+          ChartColumns(
+              bins: bins, binsPerDay: binsPerDay, warnAt: 0.75, dangerAt: 0.90),
           size: Size(w, h),
         );
 
-    testWidgets('empty series draws only the baseline + guides', (tester) async {
+    testWidgets('empty bins draw only the baseline + guides', (tester) async {
       await tester.pumpWidget(chart(const []));
       expect(find.byType(ChartColumns), findsOneWidget);
     });
 
-    testWidgets('few samples pass through with breaches in every colour band',
+    testWidgets('all-null bins render as gaps over the day gridlines',
         (tester) async {
-      await tester.pumpWidget(chart(const [0.0, 0.5, 0.8, 0.95, double.nan, -0.2, 1.4]));
+      await tester.pumpWidget(
+          chart(const [null, null, null, null, null, null, null, null]));
       await tester.pump();
     });
 
-    testWidgets('many samples are downsampled (bucketing peak)', (tester) async {
-      final many = [for (var i = 0; i < 400; i++) (i % 100) / 100.0];
-      await tester.pumpWidget(chart(many));
-      // Repaint with a longer list -> shouldRepaint true (length differs).
-      await tester.pumpWidget(chart([...many, 0.9]));
+    testWidgets('values render in every colour band; nulls are skipped',
+        (tester) async {
+      // 28 six-hourly bins (days > 1 → day gridlines drawn).
+      final bins = <double?>[
+        for (var i = 0; i < 28; i++) i % 4 == 0 ? null : i / 28.0,
+      ];
+      bins[5] = 0.0; // recorded-but-zero slice → minVisible stub
+      bins[26] = 0.82; // warn band
+      bins[27] = 0.97; // danger band
+      await tester.pumpWidget(chart(bins));
       await tester.pump();
     });
 
-    testWidgets('narrow width forces the minimum bar width path', (tester) async {
-      final many = [for (var i = 0; i < 200; i++) 0.5];
+    testWidgets('a single-day window draws no day separators', (tester) async {
+      // binsPerDay == length → days == 1 → the gridline branch is skipped.
+      await tester.pumpWidget(chart(const [0.1, 0.5, 0.9, 0.4], binsPerDay: 4));
+      await tester.pump();
+    });
+
+    testWidgets('narrow width forces the min bar width + edge clamps',
+        (tester) async {
+      final many = <double?>[for (var i = 0; i < 200; i++) 0.5];
       await tester.pumpWidget(chart(many, w: 150));
       await tester.pump();
     });
 
-    testWidgets('repaint with the identical list + thresholds is a no-op',
+    testWidgets('repaint: identical bins is a no-op; any change repaints',
         (tester) async {
-      final values = [0.1, 0.5, 0.9];
-      // Two builds share the same list instance and thresholds, so
-      // shouldRepaint walks every clause (including the length check) to false.
-      await tester.pumpWidget(chart(values));
-      await tester.pumpWidget(chart(values));
+      final bins = <double?>[0.1, null, 0.9, 0.5];
+      await tester.pumpWidget(chart(bins));
+      await tester.pumpWidget(chart(bins)); // same instance → no repaint
+      await tester.pumpWidget(chart(<double?>[0.1, null, 0.9, 0.6])); // changed
       await tester.pump();
     });
   });

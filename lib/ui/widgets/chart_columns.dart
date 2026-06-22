@@ -1,21 +1,36 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Column / bar telemetry chart, Claude-styled.
+import '../../theme/claude_theme.dart';
+
+/// Time-binned column chart, Claude-styled.
 ///
-/// One thin vertical bar per (downsampled) sample, bottom-aligned with
-/// ~1px rounded tops. Bars are white by default and only adopt amber/red
-/// where their value breaches [warnAt] / [dangerAt]. Faint baseline and
-/// optional faint dashed warn/danger guide lines. No connecting line.
+/// [bins] is a fixed-length, time-accurate series (see `binnedSeries`): one
+/// uniform time slice per entry, oldest first, where `null` means "no data in
+/// that slice" (an honest gap) and a value is that slice's peak utilisation
+/// (0..1). Every [binsPerDay] entries make up one day, so faint vertical
+/// gridlines mark the day boundaries.
+///
+/// Bars are cream by default and only adopt amber/red where their value breaches
+/// [warnAt] / [dangerAt]. A no-data slice draws nothing (bare baseline), which
+/// reads differently from a recorded-but-tiny slice (a 1px cream tick). Faint
+/// baseline and dashed warn/danger guide lines complete the frame.
 class ChartColumns extends StatelessWidget {
   const ChartColumns({
     super.key,
-    required this.values,
+    required this.bins,
+    required this.binsPerDay,
     required this.warnAt,
     required this.dangerAt,
   });
 
-  final List<double> values; // 0..1 utilisation, chronological (oldest first)
+  /// Fixed time slices, oldest → newest; `null` = no data recorded in the slice.
+  final List<double?> bins;
+
+  /// How many slices make one day (for the day gridlines).
+  final int binsPerDay;
+
   final double warnAt; // 0..1
   final double dangerAt; // 0..1
 
@@ -32,7 +47,8 @@ class ChartColumns extends StatelessWidget {
           isComplex: false,
           willChange: false,
           painter: _ColumnsPainter(
-            values: values,
+            bins: bins,
+            binsPerDay: binsPerDay,
             warnAt: warnAt,
             dangerAt: dangerAt,
           ),
@@ -44,12 +60,14 @@ class ChartColumns extends StatelessWidget {
 
 class _ColumnsPainter extends CustomPainter {
   _ColumnsPainter({
-    required this.values,
+    required this.bins,
+    required this.binsPerDay,
     required this.warnAt,
     required this.dangerAt,
   });
 
-  final List<double> values;
+  final List<double?> bins;
+  final int binsPerDay;
   final double warnAt;
   final double dangerAt;
 
@@ -58,6 +76,7 @@ class _ColumnsPainter extends CustomPainter {
   static const Color _warn = Color(0xFFE8A13C);
   static const Color _danger = Color(0xFFE5564B);
   static const Color _grid = Color(0x12FAF9F5); // warm hairline grid
+  static const Color _day = Color(0x0AFAF9F5); // even fainter day separators
   // Faint dashed threshold guides (amber/red at ~28% alpha, pre-baked).
   static const Color _warnGuide = Color(0x47E8A13C);
   static const Color _dangerGuide = Color(0x47E5564B);
@@ -67,29 +86,6 @@ class _ColumnsPainter extends CustomPainter {
     if (v < 0.0) return 0.0;
     if (v > 1.0) return 1.0;
     return v;
-  }
-
-  /// Downsample (or pass through) the input to at most [maxBars] buckets,
-  /// taking the peak of each bucket so breaches are never hidden.
-  List<double> _bucket(List<double> src, int maxBars) {
-    if (src.isEmpty) return const <double>[];
-    if (src.length <= maxBars) {
-      return [for (final v in src) _clamp01(v)];
-    }
-    final out = List<double>.filled(maxBars, 0.0);
-    final n = src.length;
-    for (var i = 0; i < maxBars; i++) {
-      final start = (i * n) ~/ maxBars;
-      var end = ((i + 1) * n) ~/ maxBars;
-      if (end <= start) end = start + 1;
-      var peak = 0.0;
-      for (var j = start; j < end && j < n; j++) {
-        final v = _clamp01(src[j]);
-        if (v > peak) peak = v;
-      }
-      out[i] = peak;
-    }
-    return out;
   }
 
   @override
@@ -112,13 +108,20 @@ class _ColumnsPainter extends CustomPainter {
 
     final baseY = plotBottom;
 
-    // Decide bar count from available width: aim ~48-64 bars with a 2px gap.
-    const gap = 2.0;
-    const targetBar = 4.0; // nominal bar+gap budget
-    var maxBars = ((plotW + gap) / (targetBar + gap)).floor();
-    maxBars = maxBars.clamp(1, 64);
-
-    final data = _bucket(values, maxBars);
+    // Faint vertical day separators (every [binsPerDay] slices = one day).
+    final total = bins.length;
+    final days = (binsPerDay > 0) ? (total / binsPerDay) : 0.0;
+    if (days > 1) {
+      final dayPaint = Paint()
+        ..isAntiAlias = false
+        ..color = _day
+        ..strokeWidth = 1.0;
+      final dayW = plotW / days;
+      for (var d = 1; d < days; d++) {
+        final x = (plotLeft + d * dayW).roundToDouble() + 0.5;
+        canvas.drawLine(Offset(x, plotTop), Offset(x, baseY), dayPaint);
+      }
+    }
 
     // Faint baseline (always drawn — gives the empty/zero state structure).
     final basePaint = Paint()
@@ -135,11 +138,12 @@ class _ColumnsPainter extends CustomPainter {
     _drawDashedGuide(canvas, plotLeft, plotRight, _yFor(cw, plotH, baseY), _warnGuide);
     _drawDashedGuide(canvas, plotLeft, plotRight, _yFor(cd, plotH, baseY), _dangerGuide);
 
-    if (data.isEmpty) return;
+    if (total == 0) return;
 
-    // Geometry: distribute bars evenly across the plot, gaps between.
-    final count = data.length;
-    final slot = plotW / count;
+    // Geometry: distribute one slot per bin evenly (slots ARE uniform time
+    // slices, so x is real time), with a gap between bars.
+    final slot = plotW / total;
+    const gap = 2.0;
     var barW = slot - gap;
     if (barW < 1.0) barW = math.max(1.0, slot * 0.7);
     final radius = math.min(barW / 2.0, 1.5);
@@ -157,15 +161,17 @@ class _ColumnsPainter extends CustomPainter {
       ..color = _danger
       ..style = PaintingStyle.fill;
 
-    // A 1px stub so zero/near-zero samples still register as a tick.
+    // A 1px stub so a recorded-but-tiny slice still registers as a tick — and
+    // stays visually distinct from a no-data slice, which draws nothing.
     const minVisible = 1.0;
 
-    for (var i = 0; i < count; i++) {
-      final v = data[i];
+    for (var i = 0; i < total; i++) {
+      final raw = bins[i];
+      if (raw == null) continue; // no data in this slice → bare baseline
+      final v = _clamp01(raw);
       final cx = plotLeft + slot * i + slot / 2.0;
       var left = cx - barW / 2.0;
       var right = cx + barW / 2.0;
-      // Keep within plot.
       if (left < plotLeft) left = plotLeft;
       if (right > plotRight) right = plotRight;
 
@@ -174,7 +180,7 @@ class _ColumnsPainter extends CustomPainter {
       final top = baseY - barH;
 
       // Colour means breach only: danger above dangerAt, amber above warnAt,
-      // white otherwise.
+      // cream otherwise.
       final Paint p;
       if (v >= cd) {
         p = dangerPaint;
@@ -223,7 +229,7 @@ class _ColumnsPainter extends CustomPainter {
   bool shouldRepaint(covariant _ColumnsPainter old) {
     return old.warnAt != warnAt ||
         old.dangerAt != dangerAt ||
-        !identical(old.values, values) ||
-        old.values.length != values.length;
+        old.binsPerDay != binsPerDay ||
+        !listEquals(old.bins, bins);
   }
 }

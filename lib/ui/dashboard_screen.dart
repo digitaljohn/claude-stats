@@ -31,6 +31,10 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   ChartSeries _series = ChartSeries.session;
+
+  // 7-day window split into 6-hour slices (4/day) — fine enough to show daily
+  // rhythm, coarse enough to stay readable and consistent at the card size.
+  static const int _binsPerDay = 4;
   bool _showSettings = const bool.fromEnvironment('settings');
 
   AppController get c => widget.controller;
@@ -258,7 +262,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Positioned.fill(
                     child: ChartColumns(
-                      values: seriesValues(c.history, _series),
+                      bins: binnedSeries(c.history, _series,
+                          now: DateTime.now(), binsPerDay: _binsPerDay),
+                      binsPerDay: _binsPerDay,
                       warnAt: settings.warnThreshold,
                       dangerAt: settings.dangerThreshold,
                     ),
