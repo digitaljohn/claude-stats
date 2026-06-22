@@ -29,7 +29,7 @@ class _GridPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, Paint()..color = AppColors.ink);
 
     final line = Paint()
-      ..color = const Color(0x09FFFFFF) // white @ ~3.5%
+      ..color = const Color(0x07FAF9F5) // warm cream @ ~3%
       ..strokeWidth = 1;
     for (double x = 0; x <= size.width; x += cell) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
@@ -47,7 +47,7 @@ class _GridPainter extends CustomPainter {
       Offset.zero & size,
       Paint()
         ..shader = RadialGradient(
-          colors: const [Color(0x14FFFFFF), Color(0x00000000)],
+          colors: const [Color(0x1AD97757), Color(0x00000000)], // faint clay glow
         ).createShader(glowRect),
     );
 
@@ -58,7 +58,7 @@ class _GridPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.center,
           end: Alignment.bottomCenter,
-          colors: [Color(0x00000000), Color(0x66000000)],
+          colors: [Color(0x00000000), Color(0x66161514)],
         ).createShader(Offset.zero & size),
     );
   }

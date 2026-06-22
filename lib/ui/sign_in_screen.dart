@@ -25,6 +25,10 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  // coverage:ignore-start
+  // Pushes the platform LoginWebView (see login_webview.dart) and signs in with
+  // the captured key. Excluded for the same reason: it depends on the live
+  // WebView/cookie platform, which can't be driven in a unit test.
   Future<void> _login() async {
     final key = await Navigator.of(context).push<String>(
       MaterialPageRoute(
@@ -37,6 +41,7 @@ class _SignInScreenState extends State<SignInScreen> {
       await widget.controller.signIn(key);
     }
   }
+  // coverage:ignore-end
 
   Future<void> _connectPasted() async {
     FocusScope.of(context).unfocus();
@@ -249,7 +254,7 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
           duration: const Duration(milliseconds: 130),
           decoration: BoxDecoration(
             color: enabled
-                ? (_hover ? const Color(0xFFE2E2E2) : AppColors.accent)
+                ? (_hover ? AppColors.accentHover : AppColors.accent)
                 : AppColors.accent.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(AppDims.radiusSm),
           ),

@@ -81,8 +81,11 @@ class MiniScreen extends StatelessWidget {
             stroke: 6,
             warnAt: s.warnThreshold,
             dangerAt: s.dangerThreshold,
-            center: Text('${w.percent}%',
-                style: AppText.stat(color).copyWith(fontSize: 17)),
+            center: w.percent >= 100
+                ? RingCountdown(
+                    resetsAt: w.resetsAt, color: color, size: 56, stroke: 6)
+                : Text('${w.percent}%',
+                    style: AppText.stat(color).copyWith(fontSize: 17)),
           ),
           const SizedBox(height: 7),
           CountdownText(

@@ -19,6 +19,10 @@ import 'ui/widgets/window_scaffold.dart';
 /// exits — a self-contained visual-verification harness.
 const String _shotPath = String.fromEnvironment('shotpath');
 
+// coverage:ignore-start
+// Desktop entrypoint: initialises window_manager / local_notifier and calls
+// runApp. Not unit-testable — runApp with the real plugins never settles under
+// the test binding (the widget tree itself is covered via ClaudeStatsApp).
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -48,6 +52,7 @@ Future<void> main() async {
 
   runApp(ClaudeStatsApp(controller: AppController()));
 }
+// coverage:ignore-end
 
 class ClaudeStatsApp extends StatefulWidget {
   const ClaudeStatsApp({super.key, required this.controller});
@@ -64,13 +69,18 @@ class _ClaudeStatsAppState extends State<ClaudeStatsApp> {
   void initState() {
     super.initState();
     widget.controller.bootstrap();
+    // coverage:ignore-start
+    // Screenshot harness, only armed by --dart-define=shotpath; _capture ends
+    // in exit(0) and so cannot run under the test runner.
     if (_shotPath.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Future<void>.delayed(const Duration(milliseconds: 2600), _capture);
       });
     }
+    // coverage:ignore-end
   }
 
+  // coverage:ignore-start
   Future<void> _capture() async {
     try {
       final boundary =
@@ -93,6 +103,7 @@ class _ClaudeStatsAppState extends State<ClaudeStatsApp> {
     }
     exit(0);
   }
+  // coverage:ignore-end
 
   @override
   void dispose() {

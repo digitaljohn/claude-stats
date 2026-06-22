@@ -10,6 +10,13 @@ import 'widgets/window_scaffold.dart';
 /// polls the cookie store for the `sessionKey` cookie; as soon as it appears
 /// (i.e. the user has signed in) it pops with that value. Mirrors the
 /// reference widget's "Log in to Claude" flow — no DevTools required.
+///
+// coverage:ignore-start
+// Excluded from coverage: this widget is a thin shell around the
+// flutter_inappwebview WKWebView platform view + native cookie store. It can't
+// be constructed in a unit test (CookieManager.instance() asserts a live
+// InAppWebViewPlatform), and its logic only runs in response to real WebView
+// navigation/cookie events.
 class LoginWebView extends StatefulWidget {
   const LoginWebView({super.key});
 
@@ -143,3 +150,4 @@ class _LoginWebViewState extends State<LoginWebView> {
     );
   }
 }
+// coverage:ignore-end
