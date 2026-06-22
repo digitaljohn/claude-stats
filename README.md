@@ -12,9 +12,10 @@
 
 [![Platform](https://img.shields.io/badge/platform-macOS-1F1E1D?logo=apple)](https://github.com/digitaljohn/claude-stats)
 [![Flutter](https://img.shields.io/badge/Flutter-3.35-1F1E1D?logo=flutter)](https://flutter.dev)
-[![Tests](https://img.shields.io/badge/tests-143%20passing-D97757)](#testing)
+[![Tests](https://img.shields.io/badge/tests-165%20passing-D97757)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-D97757)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-A6A399)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/digitaljohn)
 
 A minimal macOS desktop widget that watches your **Claude.ai usage limits** in
 real time — session, weekly, per-model — so you find out you're rate-limited
@@ -42,6 +43,9 @@ people who type `flutter run` for fun.
 
 ## Features
 
+- **Lives in the menu bar.** A custom gauge icon and your **session %** sit up
+  in the macOS menu bar like a battery readout, refreshed automatically. Click
+  it to bring the window forward.
 - **One-click sign in.** Hit **Log in with Claude** and an embedded claude.ai
   browser opens. Sign in like a normal human; the moment your `sessionKey`
   cookie appears, the app grabs it, resolves your org, and starts pulling live
@@ -53,14 +57,14 @@ people who type `flutter run` for fun.
   bragging about "100%" and becomes a countdown: full circle = **1 hour** while
   minutes remain, then snaps to a **1-minute** face for the final-seconds
   nail-biter. Watching it empty is weirdly therapeutic.
-- **Per-model breakdown** — Opus, Sonnet, Haiku, Cowork, and friends. It
-  discovers *every* `seven_day_*` window the API returns, so a model can't hide
-  from you just because we forgot to hard-code it.
+- **Per-model breakdown** — Opus, Sonnet, Haiku, Cowork, and friends, read from
+  the API's `weekly_scoped` limits so a model can't hide from you.
 - **7-day history chart** — a crisp `CustomPaint` column chart that goes cream →
-  amber → red exactly where you breached a threshold. (No, it's not a glitchy
-  shader anymore. We grew up.)
+  amber → red exactly where you breached a threshold.
 - **Auto-refresh** every 1 / 5 / 15 / 30 min, with **desktop notifications**
   when you cross your warn/danger thresholds.
+- **Update checks** — compares your version against the latest GitHub release
+  and offers a one-click download when a newer one ships.
 - **Integrated macOS window chrome.** Hidden native title bar, traffic-light
   buttons floating over a full-size content view, drag-to-move anywhere,
   optional always-on-top. It looks like it belongs.
@@ -86,28 +90,27 @@ plaintext. To be crystal clear: that's _obfuscation, not encryption_, and it's
 **not** the Keychain. It never leaves your machine except to talk to claude.ai —
 the same place your browser already sends it.
 
-## Run it
+## Install
 
-You'll need the [Flutter SDK](https://flutter.dev) (3.35+) and Xcode.
+**Download** the latest `.dmg` from the [**Releases**](https://github.com/digitaljohn/claude-stats/releases)
+page, open it, and drag **claude·stats** into Applications.
+
+> The build is unsigned (no Apple Developer account yet), so macOS Gatekeeper
+> blocks it on first launch. Right-click the app → **Open** → confirm, or run
+> `xattr -dr com.apple.quarantine /Applications/claude_stats.app`.
+
+**Or build from source** — you'll need the [Flutter SDK](https://flutter.dev)
+(3.35+) and Xcode:
 
 ```bash
 git clone https://github.com/digitaljohn/claude-stats.git
 cd claude-stats
 flutter pub get
-flutter run -d macos
+flutter run -d macos     # run it…
+flutter build macos      # …or build a release .app
 ```
 
-Just want to admire the UI without signing in?
-
-```bash
-flutter run -d macos --dart-define=demo=true
-```
-
-Build a release app:
-
-```bash
-flutter build macos        # -> build/macos/Build/Products/Release/claude_stats.app
-```
+Just want to admire the UI without a session key? Add `--dart-define=demo=true`.
 
 ## Tech stack
 
@@ -115,7 +118,9 @@ flutter build macos        # -> build/macos/Build/Products/Release/claude_stats.
 |---|---|
 | **Framework** | Flutter 3.35 / Dart 3.9 |
 | **Window chrome** | [`window_manager`](https://pub.dev/packages/window_manager) — frameless title bar + traffic lights |
+| **Menu bar** | [`tray_manager`](https://pub.dev/packages/tray_manager) — NSStatusItem icon + live % |
 | **Embedded login** | [`flutter_inappwebview`](https://pub.dev/packages/flutter_inappwebview) — WKWebView + cookie capture |
+| **Browser launch** | [`url_launcher`](https://pub.dev/packages/url_launcher) — opens release / coffee links |
 | **Typography** | [`google_fonts`](https://pub.dev/packages/google_fonts) — Hanken Grotesk (UI) + JetBrains Mono (readouts) |
 | **Notifications** | [`local_notifier`](https://pub.dev/packages/local_notifier) |
 | **HTTP / storage / time** | `http`, `path_provider`, `intl` |
@@ -127,18 +132,18 @@ runtime bloat.
 
 ```
 lib/
-├─ data/        claude_api.dart · session_store.dart · demo_data.dart
+├─ data/        claude_api.dart · session_store.dart · update_checker.dart · demo_data.dart
 ├─ models/      usage.dart           (windows, snapshot, history points)
 ├─ state/       app_controller.dart  (fetch loop, notifications, modes) · settings.dart
 ├─ theme/       claude_theme.dart    (the warm Claude palette + type scale)
-├─ ui/          dashboard · mini · sign_in · settings · login_webview
+├─ ui/          dashboard · mini · sign_in · settings · login_webview · tray (menu bar)
 │  └─ widgets/  usage_ring · heat_bar · chart_columns · countdown_text · …
-└─ main.dart    integrated-chrome bootstrap + screenshot harness
+└─ main.dart    integrated-chrome + menu-bar bootstrap (+ screenshot harness)
 ```
 
 ## Testing
 
-143 tests, **100% line coverage** — including the painters, the timers, the
+165 tests, **100% line coverage** — including the painters, the timers, the
 fetch loop, and the bit of maths that decides whether your countdown ring is
 counting hours or panicking in seconds.
 
@@ -156,6 +161,12 @@ your browser does. It is **not affiliated with or endorsed by Anthropic**, and
 if they change the API one Tuesday afternoon, the rings may briefly become
 abstract art. No warranty, no usage data sold, nothing phones home. Don't ship
 your `sessionKey` to anyone, including very polite strangers.
+
+## Support
+
+If this spares you one too many "you've reached your limit" surprises, you can
+[**buy me a coffee** ☕](https://www.buymeacoffee.com/digitaljohn) — entirely
+optional, deeply appreciated. (There's a coffee button in the title bar, too.)
 
 ## License
 
