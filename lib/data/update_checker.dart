@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 /// The running app version, without build metadata. Kept in lock-step with
 /// pubspec's `version:` by a test (see test/data/update_checker_test.dart), so
 /// it can never silently drift out of sync.
-const String kAppVersion = '0.1.0';
+const String kAppVersion = '1.0.0';
 
 /// A newer release found on GitHub.
 class UpdateInfo {
