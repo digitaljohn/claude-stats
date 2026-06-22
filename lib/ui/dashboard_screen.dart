@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/update_checker.dart';
 import '../models/usage.dart';
 import '../state/app_controller.dart';
 import '../state/settings.dart';
@@ -60,6 +61,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
               children: [
+                if (c.availableUpdate != null) ...[
+                  _UpdateBanner(
+                    info: c.availableUpdate!,
+                    onDownload: c.openDownloadUrl,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (c.isDemo) const _Banner.demo(),
                 if (c.error != null) _Banner.error(c.error!),
                 if (c.isDemo || c.error != null) const SizedBox(height: 12),
@@ -92,10 +100,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _windowCard(u.weekly, settings),
         const SizedBox(height: 12),
         _chartCard(settings),
-        if (u.models.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _modelsCard(u.models, settings),
-        ],
+        const SizedBox(height: 12),
+        _modelsCard(u, settings),
         if (u.extra != null && u.extra!.isEnabled) ...[
           const SizedBox(height: 12),
           _extraCard(u.extra!),
@@ -318,17 +324,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── per-model breakdown ────────────────────────────────────────────────────
 
-  Widget _modelsCard(List<UsageWindow> models, Settings settings) {
+  Widget _modelsCard(UsageSnapshot u, Settings settings) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionLabel('Per-model · weekly'),
           const SizedBox(height: 14),
-          for (var i = 0; i < models.length; i++) ...[
-            if (i > 0) const SizedBox(height: 12),
-            _modelRow(models[i], settings),
-          ],
+          if (u.models.isEmpty) ...[
+            // Don't hide silently — say so, and show what the API did return so
+            // it's clear whether a model (e.g. Opus) is simply absent upstream.
+            Text('No per-model limits reported for this account.',
+                style: AppText.body(AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            Text(
+                'API returned: '
+                '${u.rawKeys.isEmpty ? '—' : u.rawKeys.join(', ')}',
+                style: AppText.mono(AppColors.textFaint, size: 9)),
+          ] else
+            for (var i = 0; i < u.models.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _modelRow(u.models[i], settings),
+            ],
         ],
       ),
     );
@@ -465,6 +482,50 @@ class _Banner extends StatelessWidget {
           Expanded(
             child: Text(message,
                 style: AppText.label(AppColors.textPrimary).copyWith(height: 1.3)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Accent banner shown when a newer GitHub release is available, with a
+/// Download action that opens the release page in the browser.
+class _UpdateBanner extends StatelessWidget {
+  const _UpdateBanner({required this.info, required this.onDownload});
+
+  final UpdateInfo info;
+  final VoidCallback onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppDims.radiusSm),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.arrow_circle_up_outlined,
+              size: 16, color: AppColors.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('Update available — v${info.version}',
+                style: AppText.label(AppColors.textPrimary)),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onDownload,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accent,
+                borderRadius: BorderRadius.circular(AppDims.radiusXs),
+              ),
+              child: Text('Download', style: AppText.label(AppColors.onAccent)),
+            ),
           ),
         ],
       ),

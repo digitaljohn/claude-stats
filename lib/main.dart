@@ -50,7 +50,10 @@ Future<void> main() async {
     await localNotifier.setup(appName: 'claude·stats');
   } catch (_) {/* notifications are best-effort */}
 
-  runApp(ClaudeStatsApp(controller: AppController()));
+  final controller = AppController();
+  runApp(ClaudeStatsApp(controller: controller));
+  // Fire-and-forget: surface a banner if a newer GitHub release exists.
+  controller.checkForUpdates();
 }
 // coverage:ignore-end
 

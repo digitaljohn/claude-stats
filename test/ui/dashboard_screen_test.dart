@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:claude_stats/data/update_checker.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/state/settings.dart';
@@ -119,6 +120,54 @@ void main() {
     await tester.pumpWidget(wrap(DashboardScreen(controller: c),
         size: const Size(420, 1500)));
     expect(find.text('EXTRA USAGE'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('shows an update banner; Download opens the release page',
+      (tester) async {
+    await useTallSurface(tester);
+    final launched = <Uri>[];
+    final c = readyController(
+      mode: AppMode.demo,
+      usage: screenSnapshot(),
+      history: someHistory(),
+      availableUpdate: const UpdateInfo(version: '9.9.9', url: 'https://gh/rel'),
+      urlLauncher: (u) async {
+        launched.add(u);
+        return true;
+      },
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
+
+    expect(find.textContaining('Update available'), findsOneWidget);
+    await tester.tap(find.text('Download'));
+    await tester.pump();
+    expect(launched.single.toString(), 'https://gh/rel');
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('per-model empty state names what the API returned',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(
+      mode: AppMode.live,
+      usage: screenSnapshot(
+        models: false,
+        rawKeys: const ['five_hour', 'seven_day'],
+      ),
+      history: someHistory(),
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
+
+    expect(find.text('PER-MODEL · WEEKLY'), findsOneWidget);
+    expect(find.textContaining('No per-model limits'), findsOneWidget);
+    expect(find.textContaining('five_hour, seven_day'), findsOneWidget);
+
     await tester.pumpWidget(const SizedBox());
   });
 }

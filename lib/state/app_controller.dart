@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:local_notifier/local_notifier.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../data/claude_api.dart';
 import '../data/demo_data.dart';
 import '../data/session_store.dart';
+import '../data/update_checker.dart';
 import '../models/usage.dart';
 import 'settings.dart';
 
@@ -15,12 +17,25 @@ enum AppMode { loading, signedOut, demo, live }
 /// Single source of truth for auth, usage data, settings, the auto-refresh
 /// loop, history accumulation and threshold notifications.
 class AppController extends ChangeNotifier {
-  AppController({SessionStore? store, ClaudeApiClient? api})
-      : _store = store ?? SessionStore(),
-        _api = api ?? ClaudeApiClient();
+  AppController({
+    SessionStore? store,
+    ClaudeApiClient? api,
+    UpdateChecker? updateChecker,
+    Future<bool> Function(Uri)? urlLauncher,
+  })  : _store = store ?? SessionStore(),
+        _api = api ?? ClaudeApiClient(),
+        _updateChecker = updateChecker ?? UpdateChecker(),
+        _launchUrl = urlLauncher ?? _defaultLaunch;
 
   final SessionStore _store;
   final ClaudeApiClient _api;
+  final UpdateChecker _updateChecker;
+  final Future<bool> Function(Uri) _launchUrl;
+
+  // coverage:ignore-start
+  static Future<bool> _defaultLaunch(Uri uri) =>
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+  // coverage:ignore-end
 
   AppMode mode = AppMode.loading;
   Settings settings = const Settings();
@@ -31,6 +46,7 @@ class AppController extends ChangeNotifier {
   String? error; // live-fetch error
   String? signInError; // sign-in attempt error
   DateTime? lastUpdated;
+  UpdateInfo? availableUpdate; // newer GitHub release, if any
 
   String? _sessionKey;
   String? _orgId;
@@ -254,10 +270,28 @@ class AppController extends ChangeNotifier {
     } catch (_) {/* notifications are best-effort */}
   }
 
+  // ── update check ───────────────────────────────────────────────────────
+
+  /// Best-effort check against GitHub's latest release; surfaces
+  /// [availableUpdate] (and a dashboard banner) when a newer version exists.
+  Future<void> checkForUpdates() async {
+    availableUpdate = await _updateChecker.latestNewerThan(kAppVersion);
+    notifyListeners();
+  }
+
+  /// Opens the available release's page in the default browser. No-op if there
+  /// is no pending update.
+  Future<void> openDownloadUrl() async {
+    final info = availableUpdate;
+    if (info == null) return;
+    await _launchUrl(Uri.parse(info.url));
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
     _api.dispose();
+    _updateChecker.dispose();
     super.dispose();
   }
 }
