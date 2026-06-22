@@ -54,6 +54,8 @@ Future<void> main() async {
 }
 // coverage:ignore-end
 
+/// Root widget: wires the [AppController] into the Claude theme and routes the
+/// active [AppMode] to its screen (loading / sign-in / dashboard / mini).
 class ClaudeStatsApp extends StatefulWidget {
   const ClaudeStatsApp({super.key, required this.controller});
   final AppController controller;

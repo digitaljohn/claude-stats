@@ -117,6 +117,7 @@ class AppController extends ChangeNotifier {
     _orgId = null;
     usage = null;
     error = null;
+    signInError = null;
     _dangerNotified.clear();
     await _store.clearCredentials();
     mode = AppMode.signedOut;

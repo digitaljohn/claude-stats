@@ -5,9 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-// ignore: implementation_imports — the @visibleForTesting `httpClient` hook
-// lives in src and is the supported way to stub font fetching in tests.
-import 'package:google_fonts/src/google_fonts_base.dart' as gf_base;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -119,15 +116,15 @@ final List<Map<String, Object?>> notifications = [];
 Directory installPluginFakes() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // google_fonts kicks off an un-awaited font fetch the moment a style is
-  // requested. With a real (or blocked) network that future *rejects*, and the
-  // package rethrows it as an unhandled async error that fails the test. Point
-  // its fetch client at a request that never completes: the loader future then
-  // simply stays pending (harmless — it's not a Timer, so it doesn't block
-  // pumpAndSettle or trip the pending-timer check) and the requested TextStyle
-  // is still returned immediately with a fallback family.
-  GoogleFonts.config.allowRuntimeFetching = true;
-  gf_base.httpClient = MockClient((_) => Completer<http.Response>().future);
+  // Don't hit the network for fonts in tests. google_fonts kicks off a fetch
+  // the moment a style is used; point its client at a request that never
+  // completes, so the loader future just stays pending (harmless — it's not a
+  // Timer, so it neither blocks pumpAndSettle nor trips the pending-timer check)
+  // while the requested TextStyle returns immediately with a fallback family.
+  // Real (Roboto) metrics come from loadTestFonts(). google_fonts 8 exposes this
+  // through the public `config.httpClient` hook (its old src-level stub is gone).
+  GoogleFonts.config.httpClient =
+      MockClient((_) => Completer<http.Response>().future);
 
   final tmp = Directory.systemTemp.createTempSync('claude_stats_test');
   PathProviderPlatform.instance = FakePathProvider(tmp);

@@ -152,6 +152,26 @@ void main() {
       expect(snap.extra, isNull);
     });
 
+    test('discovers every seven_day_* model, humanising unknown keys', () async {
+      final api = clientFor({
+        '/organizations/o/usage': (
+          jsonEncode({
+            'five_hour': {'utilization': 10},
+            'seven_day': {'utilization': 20}, // bare weekly, not a model
+            'seven_day_oauth_apps': {'utilization': 5},
+            'seven_day_opus': {'utilization': 88},
+            'seven_day_omelette': {'utilization': 3},
+            'seven_day_zeta_max': {'utilization': 1}, // unknown -> humanised
+          }),
+          200,
+        ),
+      });
+      final snap = await api.fetchUsage(sessionKey: 'k', orgId: 'o');
+      // Sorted by preferred order; unknown sorts last and is title-cased.
+      expect(snap.models.map((m) => m.label).toList(),
+          ['Opus', 'Haiku', 'Apps', 'Zeta Max']);
+    });
+
     test('merges overage + prepaid into ExtraUsage', () async {
       final api = clientFor({
         '/organizations/o/usage': (jsonEncode({'five_hour': {'utilization': 10}}), 200),
