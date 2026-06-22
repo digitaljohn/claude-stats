@@ -6,17 +6,17 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../theme/claude_theme.dart';
 import 'widgets/window_scaffold.dart';
 
-/// Embedded claude.ai login. Loads the real login page in a WKWebView and
-/// polls the cookie store for the `sessionKey` cookie; as soon as it appears
-/// (i.e. the user has signed in) it pops with that value. Mirrors the
-/// reference widget's "Log in to Claude" flow — no DevTools required.
-///
 // coverage:ignore-start
 // Excluded from coverage: this widget is a thin shell around the
 // flutter_inappwebview WKWebView platform view + native cookie store. It can't
 // be constructed in a unit test (CookieManager.instance() asserts a live
 // InAppWebViewPlatform), and its logic only runs in response to real WebView
 // navigation/cookie events.
+//
+/// Embedded claude.ai login. Loads the real login page in a WKWebView and
+/// polls the cookie store for the `sessionKey` cookie; as soon as it appears
+/// (i.e. the user has signed in) it pops with that value. Mirrors the
+/// reference widget's "Log in to Claude" flow — no DevTools required.
 class LoginWebView extends StatefulWidget {
   const LoginWebView({super.key});
 
@@ -42,10 +42,13 @@ class _LoginWebViewState extends State<LoginWebView> {
     try {
       final cookies = await _cookies.getCookies(url: WebUri('https://claude.ai'));
       for (final c in cookies) {
-        if (c.name == 'sessionKey' && (c.value.toString().isNotEmpty)) {
+        // `Cookie.value` is dynamic and may be null; guard before stringifying
+        // so a missing value can't be captured as the literal string "null".
+        final value = c.value?.toString();
+        if (c.name == 'sessionKey' && value != null && value.isNotEmpty) {
           _done = true;
           _poll?.cancel();
-          if (mounted) Navigator.of(context).pop(c.value.toString());
+          if (mounted) Navigator.of(context).pop(value);
           return;
         }
       }

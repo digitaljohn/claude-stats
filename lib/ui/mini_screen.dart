@@ -74,19 +74,19 @@ class MiniScreen extends StatelessWidget {
         children: [
           SectionLabel(w.label),
           const SizedBox(height: 7),
-          UsageRing(
-            value: w.utilization,
-            color: color,
-            size: 56,
-            stroke: 6,
-            warnAt: s.warnThreshold,
-            dangerAt: s.dangerThreshold,
-            center: w.percent >= 100
-                ? RingCountdown(
-                    resetsAt: w.resetsAt, color: color, size: 56, stroke: 6)
-                : Text('${w.percent}%',
-                    style: AppText.stat(color).copyWith(fontSize: 17)),
-          ),
+          w.percent >= 100
+              ? RingCountdown(
+                  resetsAt: w.resetsAt, color: color, size: 56, stroke: 6)
+              : UsageRing(
+                  value: w.utilization,
+                  color: color,
+                  size: 56,
+                  stroke: 6,
+                  warnAt: s.warnThreshold,
+                  dangerAt: s.dangerThreshold,
+                  center: Text('${w.percent}%',
+                      style: AppText.stat(color).copyWith(fontSize: 17)),
+                ),
           const SizedBox(height: 7),
           CountdownText(
             resetsAt: w.resetsAt,

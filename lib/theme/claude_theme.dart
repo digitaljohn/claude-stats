@@ -109,7 +109,8 @@ class AppText {
         letterSpacing: 0,
       );
 
-  /// All-caps technical micro-label.
+  /// Monospace technical readout (countdowns, ids, URLs, micro-labels) with
+  /// tabular figures. Capitalisation is decided at the call site.
   static TextStyle mono(Color color, {double size = 11}) =>
       GoogleFonts.jetBrainsMono(
         fontSize: size,

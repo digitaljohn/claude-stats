@@ -25,7 +25,7 @@ class WindowScaffold extends StatelessWidget {
   final Widget? titleWidget;
 
   /// Optional full-bleed background painted behind everything (e.g. the
-  /// glitch hero). The title bar floats transparently over it.
+  /// [GridBackground]). The title bar floats transparently over it.
   final Widget? background;
 
   final List<Widget> actions;
@@ -95,8 +95,13 @@ class _TitleBar extends StatelessWidget {
               const SizedBox(width: 80),
               title,
               const Spacer(),
-              ...actions,
-              const SizedBox(width: 10),
+              // Space the action buttons apart so their hover fills read as
+              // distinct pills, not one bar bleeding to the window edge.
+              for (var i = 0; i < actions.length; i++) ...[
+                if (i > 0) const SizedBox(width: 4),
+                actions[i],
+              ],
+              const SizedBox(width: 12),
             ],
           ),
         ),

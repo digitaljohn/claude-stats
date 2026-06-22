@@ -65,4 +65,20 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   });
+
+  group('UpdatedAgo widget', () {
+    testWidgets('renders an em dash with no timestamp', (tester) async {
+      await tester.pumpWidget(wrap(const UpdatedAgo(updated: null)));
+      expect(find.text('UPDATED —'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('shows a relative time and ticks each second', (tester) async {
+      final t = DateTime.now().subtract(const Duration(seconds: 8));
+      await tester.pumpWidget(wrap(UpdatedAgo(updated: t)));
+      expect(find.textContaining('AGO'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1)); // fire the periodic timer
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
 }

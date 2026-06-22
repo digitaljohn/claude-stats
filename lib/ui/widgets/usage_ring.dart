@@ -112,5 +112,5 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.value != value || old.color != color || old.stroke != stroke;
+      old.value != value || old.color != color || old.stroke != stroke || old.warnAt != warnAt || old.dangerAt != dangerAt;
 }

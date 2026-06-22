@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/usage.dart';
 import '../state/app_controller.dart';
+import '../state/settings.dart';
 import '../theme/claude_theme.dart';
 import 'settings_panel.dart';
 import 'widgets/app_card.dart';
@@ -82,7 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── full layout ──────────────────────────────────────────────────────────
 
-  Widget _full(UsageSnapshot u, settings) {
+  Widget _full(UsageSnapshot u, Settings settings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -105,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _compact(UsageSnapshot u, settings) {
+  Widget _compact(UsageSnapshot u, Settings settings) {
     return Column(
       children: [
         Row(
@@ -121,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _ringTile(UsageWindow w, settings) {
+  Widget _ringTile(UsageWindow w, Settings settings) {
     final color =
         AppColors.heat(w.utilization, warnAt: settings.warnThreshold, dangerAt: settings.dangerThreshold);
     return AppCard(
@@ -129,16 +130,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           SectionLabel(w.label),
           const SizedBox(height: 12),
-          UsageRing(
-            value: w.utilization,
-            color: color,
-            size: 96,
-            warnAt: settings.warnThreshold,
-            dangerAt: settings.dangerThreshold,
-            center: w.percent >= 100
-                ? RingCountdown(resetsAt: w.resetsAt, color: color, size: 96)
-                : Text('${w.percent}%', style: AppText.stat(color).copyWith(fontSize: 22)),
-          ),
+          w.percent >= 100
+              ? RingCountdown(resetsAt: w.resetsAt, color: color, size: 96)
+              : UsageRing(
+                  value: w.utilization,
+                  color: color,
+                  size: 96,
+                  warnAt: settings.warnThreshold,
+                  dangerAt: settings.dangerThreshold,
+                  center: Text('${w.percent}%',
+                      style: AppText.stat(color).copyWith(fontSize: 22)),
+                ),
           const SizedBox(height: 10),
           CountdownText(resetsAt: w.resetsAt, use24h: settings.use24h),
         ],
@@ -148,24 +150,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── primary window card (ring + stats) ─────────────────────────────────────
 
-  Widget _windowCard(UsageWindow w, settings) {
+  Widget _windowCard(UsageWindow w, Settings settings) {
     final color = AppColors.heat(w.utilization,
         warnAt: settings.warnThreshold, dangerAt: settings.dangerThreshold);
     final windowLabel = w.key == 'five_hour' ? '5-hour window' : '7-day window';
     return AppCard(
       child: Row(
         children: [
-          UsageRing(
-            value: w.utilization,
-            color: color,
-            size: 96,
-            stroke: 8,
-            warnAt: settings.warnThreshold,
-            dangerAt: settings.dangerThreshold,
-            center: w.percent >= 100
-                ? RingCountdown(
-                    resetsAt: w.resetsAt, color: color, size: 96, stroke: 8)
-                : Column(
+          w.percent >= 100
+              ? RingCountdown(
+                  resetsAt: w.resetsAt, color: color, size: 96, stroke: 8)
+              : UsageRing(
+                  value: w.utilization,
+                  color: color,
+                  size: 96,
+                  stroke: 8,
+                  warnAt: settings.warnThreshold,
+                  dangerAt: settings.dangerThreshold,
+                  center: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('${w.percent}',
@@ -175,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               size: 10)),
                     ],
                   ),
-          ),
+                ),
           const SizedBox(width: 18),
           Expanded(
             child: Column(
@@ -205,9 +207,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ── shader history chart card ──────────────────────────────────────────────
+  // ── 7-day history chart card (CustomPaint columns) ─────────────────────────
 
-  Widget _chartCard(settings) {
+  Widget _chartCard(Settings settings) {
     final u = c.usage!;
     final current = _series == ChartSeries.session ? u.session : u.weekly;
     final color = AppColors.heat(current.utilization,
@@ -316,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── per-model breakdown ────────────────────────────────────────────────────
 
-  Widget _modelsCard(List<UsageWindow> models, settings) {
+  Widget _modelsCard(List<UsageWindow> models, Settings settings) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +334,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _modelRow(UsageWindow w, settings) {
+  Widget _modelRow(UsageWindow w, Settings settings) {
     final color = AppColors.heat(w.utilization,
         warnAt: settings.warnThreshold, dangerAt: settings.dangerThreshold);
     return Row(
@@ -364,25 +366,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── extra usage ─────────────────────────────────────────────────────────────
 
+  // Compact single-row summary — extra usage rarely needs a full card. The
+  // trailing cluster scales down rather than overflowing on narrow widths.
   Widget _extraCard(ExtraUsage e) {
-    final color = AppColors.heat(e.utilization);
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: AppDims.pad, vertical: 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              const SectionLabel('Extra usage'),
-              const Spacer(),
-              Text('${e.fmt(e.usedCents)} / ${e.fmt(e.limitCents)}',
-                  style: AppText.mono(AppColors.textPrimary, size: 12)),
-            ],
+          const SectionLabel('Extra usage'),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (e.balanceCents > 0) ...[
+                      Text('BAL ${e.fmt(e.balanceCents)}',
+                          style: AppText.mono(AppColors.textFaint, size: 10)),
+                      const SizedBox(width: 10),
+                    ],
+                    Text('${e.fmt(e.usedCents)} / ${e.fmt(e.limitCents)}',
+                        style: AppText.mono(AppColors.textPrimary, size: 12)),
+                  ],
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          HeatBar(value: e.utilization, color: color, showTicks: false),
-          const SizedBox(height: 8),
-          Text('Balance ${e.fmt(e.balanceCents)}',
-              style: AppText.label(AppColors.textFaint)),
         ],
       ),
     );
@@ -391,10 +403,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── footer ───────────────────────────────────────────────────────────────
 
   Widget _footer(UsageSnapshot u) {
-    final updated = c.lastUpdated;
-    final ago = updated == null
-        ? '—'
-        : '${DateTime.now().difference(updated).inSeconds}s ago';
     return Row(
       children: [
         Container(
@@ -409,8 +417,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(c.isDemo ? 'DEMO DATA' : 'LIVE',
             style: AppText.mono(AppColors.textFaint, size: 9)),
         const Spacer(),
-        Text('UPDATED $ago'.toUpperCase(),
-            style: AppText.mono(AppColors.textFaint, size: 9)),
+        UpdatedAgo(updated: c.lastUpdated),
       ],
     );
   }

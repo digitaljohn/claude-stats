@@ -13,8 +13,8 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Desktop window control: hidden title bar w/ traffic lights, always-on-top,
-  # sizing, drag-to-move. Same package the RØDECaster app uses.
-  window_manager: ^0.4.3
+  # sizing, drag-to-move.
+  window_manager: ^0.5.1
 
   # App-private storage for the Claude sessionKey + settings + history,
   # written to the sandbox container (no fragile Keychain entitlements).
@@ -26,9 +26,9 @@ dependencies:
   # Reset-countdown / clock formatting (12h / 24h).
   intl: ^0.20.2
 
-  # Claude-family typography (Inter for UI, a serif for the wordmark,
-  # a mono for technical readouts). Matches the app's google_fonts convention.
-  google_fonts: ^6.2.1
+  # Claude-family typography: Hanken Grotesk for UI (a clean stand-in for
+  # Claude's "Styrene"), JetBrains Mono for technical readouts.
+  google_fonts: ^8.1.0
 
   # Best-effort desktop notifications at usage thresholds.
   local_notifier: ^0.1.6
@@ -36,13 +36,10 @@ dependencies:
   # Embedded claude.ai login (captures the sessionKey cookie automatically).
   flutter_inappwebview: ^6.1.5
 
-  # AES-CBC + PBKDF2 for decrypting Chromium cookie stores on import.
-  pointycastle: ^3.9.1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
   # Test-only: deterministic timers (auto-refresh loop) + plugin platform fakes
   # (path_provider) used by the test harness.

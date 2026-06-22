@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Column / bar telemetry chart, Vercel-styled.
+/// Column / bar telemetry chart, Claude-styled.
 ///
 /// One thin vertical bar per (downsampled) sample, bottom-aligned with
 /// ~1px rounded tops. Bars are white by default and only adopt amber/red
@@ -132,8 +132,8 @@ class _ColumnsPainter extends CustomPainter {
     // Faint dashed guide lines for warn / danger thresholds.
     final cw = _clamp01(warnAt);
     final cd = _clamp01(dangerAt);
-    _drawDashedGuide(canvas, plotLeft, plotRight, _yFor(cw, plotTop, plotH, baseY), _warnGuide);
-    _drawDashedGuide(canvas, plotLeft, plotRight, _yFor(cd, plotTop, plotH, baseY), _dangerGuide);
+    _drawDashedGuide(canvas, plotLeft, plotRight, _yFor(cw, plotH, baseY), _warnGuide);
+    _drawDashedGuide(canvas, plotLeft, plotRight, _yFor(cd, plotH, baseY), _dangerGuide);
 
     if (data.isEmpty) return;
 
@@ -194,9 +194,7 @@ class _ColumnsPainter extends CustomPainter {
     }
   }
 
-  double _yFor(double v, double plotTop, double plotH, double baseY) {
-    return baseY - v * plotH;
-  }
+  double _yFor(double v, double plotH, double baseY) => baseY - v * plotH;
 
   void _drawDashedGuide(
     Canvas canvas,

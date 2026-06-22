@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../theme/claude_theme.dart';
 
-/// Minimal Vercel-style backdrop: true black with a faint hairline grid and a
-/// soft top glow to lift overlaid content. Static — no motion, no glitch.
+/// Claude-brand backdrop: warm charcoal ([AppColors.ink]) with a faint
+/// warm-cream hairline grid, a soft clay top glow to lift overlaid content, and
+/// a bottom vignette. Static — no motion, no glitch.
 class GridBackground extends StatelessWidget {
   const GridBackground({super.key, this.cell = 34});
 
