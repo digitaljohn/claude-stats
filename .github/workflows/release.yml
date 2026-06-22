@@ -1,0 +1,63 @@
+name: Release
+
+# Pushing a version tag (e.g. v0.1.0) builds the macOS app and publishes a
+# GitHub Release with the .app attached as a zip.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the release + upload assets
+
+jobs:
+  macos:
+    name: Build & release (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.6
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+      - run: flutter pub get
+
+      # Ad-hoc signed (CODE_SIGN_IDENTITY = "-"); no Apple Developer account
+      # needed, so the artifact is unsigned/un-notarized — see release notes.
+      - name: Build macOS (release)
+        run: flutter build macos --release
+
+      - name: Package .app into a .dmg
+        run: |
+          APP="build/macos/Build/Products/Release/claude_stats.app"
+          DMG="claude-stats-${{ github.ref_name }}-macos.dmg"
+          STAGING="$(mktemp -d)"
+          cp -R "$APP" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"   # drag-to-install target
+          # hdiutil is reliable headless (no Finder/AppleScript window styling).
+          hdiutil create -volname "claude·stats" \
+            -srcfolder "$STAGING" -ov -format UDZO "$DMG"
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.DMG }}
+          generate_release_notes: true
+          # Tags with a pre-release suffix (e.g. v0.1.0-rc.1) publish as a GitHub
+          # pre-release; clean semver tags (v0.1.0) publish as a full release.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body: |
+            ### claude·stats ${{ github.ref_name }} — macOS
+
+            Open the `.dmg` and drag **claude_stats** into **Applications**.
+
+            > ⚠️ **Unsigned / un-notarized** build (no Apple Developer account yet),
+            > so Gatekeeper blocks it on first launch. To run it:
+            > - Right-click the app → **Open** → confirm, **or**
+            > - `xattr -dr com.apple.quarantine /Applications/claude_stats.app`
+
+            Built from `${{ github.sha }}`.

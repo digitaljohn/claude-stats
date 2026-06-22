@@ -1,0 +1,61 @@
+name: CI
+
+# Full analyze + test on every PR and every push to main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch/PR cancels the in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Analyze & test
+    # macOS-only app: run CI on macOS so the platform plugins (local_notifier,
+    # window_manager, flutter_inappwebview) behave as they do in production.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.6
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze --fatal-infos
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      # The project holds a 100%-line-coverage bar; fail the build if it slips.
+      - name: Enforce 100% line coverage
+        run: |
+          python3 - <<'PY'
+          import sys
+          total = hit = 0
+          for line in open('coverage/lcov.info'):
+              if line.startswith('DA:'):
+                  total += 1
+                  if int(line.split(',')[1]) > 0:
+                      hit += 1
+          pct = 100 * hit / total if total else 0.0
+          print(f'Line coverage: {hit}/{total} = {pct:.2f}%')
+          sys.exit(0 if total and hit == total else 1)
+          PY
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: ignore
