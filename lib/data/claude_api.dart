@@ -121,17 +121,7 @@ class ClaudeApiClient {
       return UsageWindow(key: key, label: label, utilization: 0);
     }
 
-    // Discover *every* per-model weekly window the API returns (`seven_day_*`),
-    // not just a fixed whitelist — so Opus and any future models always appear.
-    final models = <UsageWindow>[];
-    for (final entry in data.entries) {
-      final key = entry.key;
-      final raw = entry.value;
-      if (key.startsWith('seven_day_') && raw is Map<String, dynamic>) {
-        models.add(UsageWindow.fromJson(key, _modelLabel(key), raw));
-      }
-    }
-    models.sort((a, b) => _modelRank(a.key).compareTo(_modelRank(b.key)));
+    final models = _perModel(data);
 
     final extra = await _fetchExtra(sessionKey, orgId);
 
@@ -178,6 +168,46 @@ class ClaudeApiClient {
       limitCents: limit,
       balanceCents: balance,
     );
+  }
+
+  /// Per-model weekly limits.
+  ///
+  /// Prefers the modern `limits` array — each `weekly_scoped` entry names its
+  /// model via `scope.model.display_name` and carries a `percent`. The flat
+  /// top-level `seven_day_<model>` keys are unreliable on current accounts
+  /// (often `null` even for models you've used), so they're only a fallback for
+  /// older API shapes that don't send `limits`.
+  List<UsageWindow> _perModel(Map<String, dynamic> data) {
+    final limits = data['limits'];
+    if (limits is List) {
+      final scoped = <UsageWindow>[];
+      for (final entry in limits) {
+        if (entry is! Map<String, dynamic>) continue;
+        if (entry['kind'] != 'weekly_scoped') continue;
+        final scope = entry['scope'];
+        final model = scope is Map<String, dynamic> ? scope['model'] : null;
+        final name = model is Map<String, dynamic> ? model['display_name'] : null;
+        if (name is! String || name.isEmpty) continue;
+        scoped.add(UsageWindow.fromJson(
+          'weekly_scoped_$name',
+          name,
+          {'utilization': entry['percent'], 'resets_at': entry['resets_at']},
+        ));
+      }
+      if (scoped.isNotEmpty) return scoped;
+    }
+
+    // Legacy fallback: flat `seven_day_<model>` map windows.
+    final flat = <UsageWindow>[];
+    for (final entry in data.entries) {
+      if (entry.key.startsWith('seven_day_') &&
+          entry.value is Map<String, dynamic>) {
+        flat.add(UsageWindow.fromJson(entry.key, _modelLabel(entry.key),
+            entry.value as Map<String, dynamic>));
+      }
+    }
+    flat.sort((a, b) => _modelRank(a.key).compareTo(_modelRank(b.key)));
+    return flat;
   }
 
   /// Friendly label for a `seven_day_*` model window; humanises unknown keys

@@ -175,6 +175,65 @@ void main() {
           ['Opus', 'Haiku', 'Apps', 'Zeta Max']);
     });
 
+    test('per-model prefers the limits array (weekly_scoped, named models)',
+        () async {
+      final api = clientFor({
+        '/organizations/o/usage': (
+          jsonEncode({
+            'five_hour': {'utilization': 76},
+            'seven_day': {'utilization': 34},
+            'seven_day_opus': null, // legacy key present but null
+            'seven_day_sonnet': {'utilization': 0}, // legacy map -> superseded
+            'limits': [
+              {'kind': 'session', 'percent': 76},
+              {'kind': 'weekly_all', 'percent': 34},
+              {
+                'kind': 'weekly_scoped',
+                'percent': 12,
+                'resets_at': '2026-06-27T12:00:00Z',
+                'scope': {'model': {'display_name': 'Opus'}},
+              },
+              {
+                'kind': 'weekly_scoped',
+                'percent': 0,
+                'scope': {'model': {'display_name': 'Sonnet'}},
+              },
+              {'kind': 'weekly_scoped', 'percent': 5, 'scope': null}, // skipped
+              {
+                'kind': 'weekly_scoped',
+                'percent': 5,
+                'scope': {'model': {'display_name': ''}}, // empty -> skipped
+              },
+              'not-a-map', // skipped
+            ],
+          }),
+          200,
+        ),
+      });
+      final snap = await api.fetchUsage(sessionKey: 'k', orgId: 'o');
+      expect(snap.models.map((m) => m.label).toList(), ['Opus', 'Sonnet']);
+      expect(snap.models.first.percent, 12);
+      expect(snap.models.first.resetsAt, isNotNull);
+    });
+
+    test('falls back to flat seven_day_* when limits has no scoped models',
+        () async {
+      final api = clientFor({
+        '/organizations/o/usage': (
+          jsonEncode({
+            'five_hour': {'utilization': 10},
+            'limits': [
+              {'kind': 'session', 'percent': 10},
+            ], // present but no weekly_scoped -> fall back to flat keys
+            'seven_day_opus': {'utilization': 88},
+          }),
+          200,
+        ),
+      });
+      final snap = await api.fetchUsage(sessionKey: 'k', orgId: 'o');
+      expect(snap.models.map((m) => m.label).toList(), ['Opus']);
+    });
+
     test('merges overage + prepaid into ExtraUsage', () async {
       final api = clientFor({
         '/organizations/o/usage': (jsonEncode({'five_hour': {'utilization': 10}}), 200),
