@@ -17,7 +17,9 @@ permissions:
 jobs:
   test:
     name: Analyze & test
-    runs-on: ubuntu-latest
+    # macOS-only app: run CI on macOS so the platform plugins (local_notifier,
+    # window_manager, flutter_inappwebview) behave as they do in production.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
