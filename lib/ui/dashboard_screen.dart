@@ -85,10 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (showDemoBanner) const _Banner.demo(),
                 if (c.error != null) _Banner.error(c.error!),
                 if (showDemoBanner || c.error != null) const SizedBox(height: 12),
-                if (s.compactMode)
-                  _compact(usage, s)
-                else
-                  _full(usage, s),
+                _full(usage, s),
               ],
             ),
           if (_showSettings)
@@ -123,48 +120,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 14),
         _footer(u),
       ],
-    );
-  }
-
-  Widget _compact(UsageSnapshot u, Settings settings) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: _ringTile(u.session, settings)),
-            const SizedBox(width: 12),
-            Expanded(child: _ringTile(u.weekly, settings)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _footer(u),
-      ],
-    );
-  }
-
-  Widget _ringTile(UsageWindow w, Settings settings) {
-    final color =
-        AppColors.heat(w.utilization, warnAt: settings.warnThreshold, dangerAt: settings.dangerThreshold);
-    return AppCard(
-      child: Column(
-        children: [
-          SectionLabel(w.label),
-          const SizedBox(height: 12),
-          w.percent >= 100
-              ? RingCountdown(resetsAt: w.resetsAt, color: color, size: 96)
-              : UsageRing(
-                  value: w.utilization,
-                  color: color,
-                  size: 96,
-                  warnAt: settings.warnThreshold,
-                  dangerAt: settings.dangerThreshold,
-                  center: Text('${w.percent}%',
-                      style: AppText.stat(color).copyWith(fontSize: 22)),
-                ),
-          const SizedBox(height: 10),
-          CountdownText(resetsAt: w.resetsAt, use24h: settings.use24h),
-        ],
-      ),
     );
   }
 

@@ -6,7 +6,6 @@ class Settings {
     this.warnThreshold = 0.75,
     this.dangerThreshold = 0.90,
     this.use24h = false,
-    this.compactMode = false,
     this.refreshSeconds = 300,
     this.alwaysOnTop = false,
     this.showResetDate = false,
@@ -17,7 +16,6 @@ class Settings {
   final double warnThreshold; // 0..1
   final double dangerThreshold; // 0..1
   final bool use24h;
-  final bool compactMode;
   final int refreshSeconds;
   final bool alwaysOnTop;
   final bool showResetDate;
@@ -28,7 +26,6 @@ class Settings {
     double? warnThreshold,
     double? dangerThreshold,
     bool? use24h,
-    bool? compactMode,
     int? refreshSeconds,
     bool? alwaysOnTop,
     bool? showResetDate,
@@ -39,7 +36,6 @@ class Settings {
         warnThreshold: warnThreshold ?? this.warnThreshold,
         dangerThreshold: dangerThreshold ?? this.dangerThreshold,
         use24h: use24h ?? this.use24h,
-        compactMode: compactMode ?? this.compactMode,
         refreshSeconds: refreshSeconds ?? this.refreshSeconds,
         alwaysOnTop: alwaysOnTop ?? this.alwaysOnTop,
         showResetDate: showResetDate ?? this.showResetDate,
@@ -51,7 +47,6 @@ class Settings {
         'warn': warnThreshold,
         'danger': dangerThreshold,
         'use24h': use24h,
-        'compact': compactMode,
         'refresh': refreshSeconds,
         'onTop': alwaysOnTop,
         'resetDate': showResetDate,
@@ -63,7 +58,6 @@ class Settings {
         warnThreshold: (j['warn'] as num?)?.toDouble() ?? 0.75,
         dangerThreshold: (j['danger'] as num?)?.toDouble() ?? 0.90,
         use24h: j['use24h'] as bool? ?? false,
-        compactMode: j['compact'] as bool? ?? false,
         refreshSeconds: (j['refresh'] as num?)?.toInt() ?? 300,
         alwaysOnTop: j['onTop'] as bool? ?? false,
         showResetDate: j['resetDate'] as bool? ?? false,
