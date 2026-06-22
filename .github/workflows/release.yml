@@ -47,6 +47,9 @@ jobs:
         with:
           files: ${{ env.DMG }}
           generate_release_notes: true
+          # Tags with a pre-release suffix (e.g. v0.1.0-rc.1) publish as a GitHub
+          # pre-release; clean semver tags (v0.1.0) publish as a full release.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
             ### claude·stats ${{ github.ref_name }} — macOS
 
