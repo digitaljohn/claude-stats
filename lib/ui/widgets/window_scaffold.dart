@@ -69,11 +69,13 @@ class _TitleBar extends StatelessWidget {
   final Color? color;
   final bool showBorder;
 
-  /// Vertical band that the title content is centred in, so it lines up with
-  /// the native macOS traffic-light buttons (which sit near the top, not the
-  /// centre of the taller bar). Content centre = [_trafficLightBand] / 2.
-  /// Nudge this if the lights ever sit higher/lower on a given macOS version.
-  static const double _trafficLightBand = 30;
+  /// Vertical band the title content is centred in, so it lines up with the
+  /// native macOS traffic-light buttons. Content centre = [_trafficLightBand] /
+  /// 2. Measured (via a native probe of `standardWindowButton(.closeButton)`):
+  /// macOS centres the lights **16 px from the window top** in a 32 px title
+  /// bar — so a 32 px band centres our content exactly on them. Re-measure if a
+  /// macOS version relocates the lights.
+  static const double _trafficLightBand = 32;
 
   @override
   Widget build(BuildContext context) {
@@ -96,11 +98,22 @@ class _TitleBar extends StatelessWidget {
               title,
               const Spacer(),
               // Space the action buttons apart so their hover fills read as
-              // distinct pills, not one bar bleeding to the window edge.
-              for (var i = 0; i < actions.length; i++) ...[
-                if (i > 0) const SizedBox(width: 4),
-                actions[i],
-              ],
+              // distinct pills. Nudge the cluster down ~2px: the icon glyphs are
+              // taller than the wordmark's cap height, so box-centring leaves
+              // their tops poking above it — this lines the cluster up with the
+              // wordmark + traffic lights to the eye.
+              Transform.translate(
+                offset: const Offset(0, 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < actions.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 4),
+                      actions[i],
+                    ],
+                  ],
+                ),
+              ),
               const SizedBox(width: 12),
             ],
           ),
