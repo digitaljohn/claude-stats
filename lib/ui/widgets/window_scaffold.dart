@@ -105,7 +105,7 @@ class _TitleBar extends StatelessWidget {
   }
 }
 
-/// "claude / stats" lockup — a minimal white triangle mark + slash separator.
+/// "claude / stats" lockup — a slash-separated wordmark.
 class Wordmark extends StatelessWidget {
   const Wordmark({super.key});
 
@@ -114,8 +114,6 @@ class Wordmark extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const CustomPaint(size: Size(12, 11), painter: _TriangleMark()),
-        const SizedBox(width: 10),
         Text('claude', style: AppText.wordmark(AppColors.textPrimary)),
         const SizedBox(width: 6),
         Text('/', style: AppText.wordmark(AppColors.textFaint)),
@@ -124,23 +122,6 @@ class Wordmark extends StatelessWidget {
       ],
     );
   }
-}
-
-class _TriangleMark extends CustomPainter {
-  const _TriangleMark();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width / 2, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-    canvas.drawPath(path, Paint()..color = AppColors.textPrimary);
-  }
-
-  @override
-  bool shouldRepaint(_TriangleMark oldDelegate) => false;
 }
 
 /// A square ghost icon button used in the title bar (refresh, settings…).
@@ -167,8 +148,18 @@ class TitleBarButton extends StatefulWidget {
 class _TitleBarButtonState extends State<TitleBarButton>
     with SingleTickerProviderStateMixin {
   bool _hover = false;
-  late final AnimationController _spin =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+  late final AnimationController _spin;
+
+  @override
+  void initState() {
+    super.initState();
+    // Created eagerly (not lazily) so dispose() never has to construct a
+    // ticker mid-teardown — an inherited-widget lookup that is illegal once the
+    // element is being unmounted.
+    _spin = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900));
+    if (widget.spin) _spin.repeat();
+  }
 
   @override
   void didUpdateWidget(TitleBarButton old) {

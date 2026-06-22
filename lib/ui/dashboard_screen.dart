@@ -135,7 +135,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             size: 96,
             warnAt: settings.warnThreshold,
             dangerAt: settings.dangerThreshold,
-            center: Text('${w.percent}%', style: AppText.stat(color).copyWith(fontSize: 22)),
+            center: w.percent >= 100
+                ? RingCountdown(resetsAt: w.resetsAt, color: color, size: 96)
+                : Text('${w.percent}%', style: AppText.stat(color).copyWith(fontSize: 22)),
           ),
           const SizedBox(height: 10),
           CountdownText(resetsAt: w.resetsAt, use24h: settings.use24h),
@@ -160,14 +162,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             stroke: 8,
             warnAt: settings.warnThreshold,
             dangerAt: settings.dangerThreshold,
-            center: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('${w.percent}',
-                    style: AppText.stat(color).copyWith(fontSize: 26)),
-                Text('%', style: AppText.mono(color.withValues(alpha: 0.8), size: 10)),
-              ],
-            ),
+            center: w.percent >= 100
+                ? RingCountdown(
+                    resetsAt: w.resetsAt, color: color, size: 96, stroke: 8)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('${w.percent}',
+                          style: AppText.stat(color).copyWith(fontSize: 26)),
+                      Text('%',
+                          style: AppText.mono(color.withValues(alpha: 0.8),
+                              size: 10)),
+                    ],
+                  ),
           ),
           const SizedBox(width: 18),
           Expanded(

@@ -53,14 +53,14 @@ class _ColumnsPainter extends CustomPainter {
   final double warnAt;
   final double dangerAt;
 
-  // Palette
-  static const Color _normal = Color(0xFFEDEDED);
-  static const Color _warn = Color(0xFFF5A623);
-  static const Color _danger = Color(0xFFFF4D4D);
-  static const Color _grid = Color(0x14FFFFFF);
+  // Palette — Claude state ramp (cream → amber → red).
+  static const Color _normal = Color(0xFFF5F4EE);
+  static const Color _warn = Color(0xFFE8A13C);
+  static const Color _danger = Color(0xFFE5564B);
+  static const Color _grid = Color(0x12FAF9F5); // warm hairline grid
   // Faint dashed threshold guides (amber/red at ~28% alpha, pre-baked).
-  static const Color _warnGuide = Color(0x47F5A623);
-  static const Color _dangerGuide = Color(0x47FF4D4D);
+  static const Color _warnGuide = Color(0x47E8A13C);
+  static const Color _dangerGuide = Color(0x47E5564B);
 
   double _clamp01(double v) {
     if (v.isNaN) return 0.0;

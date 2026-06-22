@@ -1,38 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Vercel-style design tokens: true black, high-contrast monochrome surfaces,
-/// hairline borders, white-on-black typography. Colour is reserved almost
-/// entirely for state — usage runs white → amber → red, so a coloured ring
-/// always means "pay attention".
+/// Claude-brand design tokens: warm dark charcoal surfaces (not true black),
+/// cream off-white typography, and Claude's clay-orange used sparingly for
+/// brand + interaction. State still runs cream → amber → red, so a hot ring
+/// always reads as "pay attention" against the neutral palette.
 class AppColors {
-  AppColors._();
+  AppColors._(); // coverage:ignore-line
 
-  // Monochrome surfaces (black → raised).
-  static const Color ink = Color(0xFF000000); // window base
-  static const Color surface = Color(0xFF0A0A0A); // cards
-  static const Color surfaceRaised = Color(0xFF141414); // inputs / raised
-  static const Color hover = Color(0xFF1F1F1F);
+  // Warm charcoal surfaces (Claude dark mode: darkest → raised).
+  static const Color ink = Color(0xFF1F1E1D); // window base
+  static const Color surface = Color(0xFF262624); // cards
+  static const Color surfaceRaised = Color(0xFF30302E); // inputs / pills
+  static const Color hover = Color(0xFF3A3A37);
 
-  // Hairlines.
-  static const Color border = Color(0x1AFFFFFF); // white @ 10%
-  static const Color borderStrong = Color(0x29FFFFFF); // white @ 16%
+  // Hairlines — warm white at low alpha.
+  static const Color border = Color(0x14FAF9F5); // cream @ ~8%
+  static const Color borderStrong = Color(0x24FAF9F5); // cream @ ~14%
 
-  // Text.
-  static const Color textPrimary = Color(0xFFEDEDED);
-  static const Color textSecondary = Color(0xFF8F8F8F);
-  static const Color textFaint = Color(0xFF565656);
+  // Text — Claude's warm cream ramp.
+  static const Color textPrimary = Color(0xFFF5F4EE);
+  static const Color textSecondary = Color(0xFFA6A399);
+  static const Color textFaint = Color(0xFF6E6C64);
 
-  // Interactive accent = white (Vercel primary buttons / focus).
-  static const Color accent = Color(0xFFFAFAFA);
+  // Brand / interactive accent = Claude clay orange.
+  static const Color accent = Color(0xFFD97757);
+  static const Color accentHover = Color(0xFFE08C70);
 
-  // Usage state ramp: neutral white → amber → red.
-  static const Color good = Color(0xFFEDEDED);
-  static const Color warn = Color(0xFFF5A623); // amber
-  static const Color danger = Color(0xFFFF4D4D); // red
+  // Usage state ramp: neutral cream → warm amber → warm red.
+  static const Color good = Color(0xFFF5F4EE);
+  static const Color warn = Color(0xFFE8A13C); // amber
+  static const Color danger = Color(0xFFE5564B); // red
 
-  // Foreground on the white accent (button labels, etc).
-  static const Color onAccent = Color(0xFF000000);
+  // Foreground on the clay accent (button labels, etc).
+  static const Color onAccent = Color(0xFF1F1410);
 
   /// State colour for a 0..1 utilisation given warn/danger thresholds (0..1).
   static Color heat(double t, {double warnAt = 0.75, double dangerAt = 0.90}) {
@@ -42,10 +43,10 @@ class AppColors {
   }
 }
 
-/// Spacing / radius / motion tokens. Vercel geometry is restrained — tighter
-/// radii than a typical Material card.
+/// Spacing / radius / motion tokens. Restrained geometry — tighter radii than
+/// a typical Material card.
 class AppDims {
-  AppDims._();
+  AppDims._(); // coverage:ignore-line
   static const double gap = 12;
   static const double pad = 18;
   static const double radius = 12;
@@ -54,53 +55,54 @@ class AppDims {
   static const double titleBarHeight = 44; // room for macOS traffic lights
 }
 
-/// Typography. Inter for UI (Vercel's long-time UI face), JetBrains Mono for
-/// technical readouts (countdowns, ids, raw percentages).
+/// Typography. Hanken Grotesk is the closest freely-available stand-in for
+/// Claude's "Styrene B" UI face (clean geometric grotesque); JetBrains Mono
+/// for technical readouts (countdowns, ids, raw percentages).
 class AppText {
-  AppText._();
+  AppText._(); // coverage:ignore-line
 
-  static TextStyle wordmark(Color color) => GoogleFonts.inter(
+  static TextStyle wordmark(Color color) => GoogleFonts.hankenGrotesk(
         fontSize: 15,
         height: 1.0,
         fontWeight: FontWeight.w600,
         color: color,
-        letterSpacing: -0.3,
+        letterSpacing: -0.2,
       );
 
-  static TextStyle display(Color color) => GoogleFonts.inter(
+  static TextStyle display(Color color) => GoogleFonts.hankenGrotesk(
         fontSize: 44,
         height: 1.0,
         fontWeight: FontWeight.w600,
         color: color,
-        letterSpacing: -2.0,
+        letterSpacing: -1.6,
         fontFeatures: const [FontFeature.tabularFigures()],
       );
 
-  static TextStyle stat(Color color) => GoogleFonts.inter(
+  static TextStyle stat(Color color) => GoogleFonts.hankenGrotesk(
         fontSize: 30,
         height: 1.0,
         fontWeight: FontWeight.w600,
         color: color,
-        letterSpacing: -1.4,
+        letterSpacing: -1.1,
         fontFeatures: const [FontFeature.tabularFigures()],
       );
 
-  static TextStyle title(Color color) => GoogleFonts.inter(
+  static TextStyle title(Color color) => GoogleFonts.hankenGrotesk(
         fontSize: 15,
         fontWeight: FontWeight.w600,
         color: color,
-        letterSpacing: -0.3,
+        letterSpacing: -0.2,
       );
 
-  static TextStyle body(Color color) => GoogleFonts.inter(
+  static TextStyle body(Color color) => GoogleFonts.hankenGrotesk(
         fontSize: 13,
         fontWeight: FontWeight.w400,
         color: color,
         height: 1.45,
-        letterSpacing: -0.1,
+        letterSpacing: 0,
       );
 
-  static TextStyle label(Color color) => GoogleFonts.inter(
+  static TextStyle label(Color color) => GoogleFonts.hankenGrotesk(
         fontSize: 11,
         fontWeight: FontWeight.w500,
         color: color,
@@ -133,7 +135,7 @@ ThemeData buildClaudeTheme() {
     textTheme: base.textTheme.apply(
       bodyColor: AppColors.textPrimary,
       displayColor: AppColors.textPrimary,
-      fontFamily: GoogleFonts.inter().fontFamily,
+      fontFamily: GoogleFonts.hankenGrotesk().fontFamily,
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(

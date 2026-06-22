@@ -45,15 +45,17 @@ class AppController extends ChangeNotifier {
     settings = await _store.readSettings();
     history = await _store.readHistory();
     if (const bool.fromEnvironment('mini')) {
-      settings = settings.copyWith(mini: true);
+      settings = settings.copyWith(mini: true); // coverage:ignore-line
     }
     await _applyAlwaysOnTop();
     await _applyWindowMode();
     // `--dart-define=demo=true` forces demo data (screenshots / previews),
     // overriding any stored session.
     if (const bool.fromEnvironment('demo')) {
+      // coverage:ignore-start
       await enterDemo();
       return;
+      // coverage:ignore-end
     }
     final key = await _store.readSessionKey();
     if (key == null || key.isEmpty) {
