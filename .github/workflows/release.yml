@@ -1,0 +1,55 @@
+name: Release
+
+# Pushing a version tag (e.g. v0.1.0) builds the macOS app and publishes a
+# GitHub Release with the .app attached as a zip.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the release + upload assets
+
+jobs:
+  macos:
+    name: Build & release (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.6
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+      - run: flutter pub get
+
+      # Ad-hoc signed (CODE_SIGN_IDENTITY = "-"); no Apple Developer account
+      # needed, so the artifact is unsigned/un-notarized — see release notes.
+      - name: Build macOS (release)
+        run: flutter build macos --release
+
+      - name: Package .app into a zip
+        run: |
+          APP="build/macos/Build/Products/Release/claude_stats.app"
+          ZIP="claude-stats-${{ github.ref_name }}-macos.zip"
+          # ditto preserves the bundle's symlinks/metadata (plain zip can corrupt .app).
+          ditto -c -k --keepParent "$APP" "$ZIP"
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP }}
+          generate_release_notes: true
+          body: |
+            ### claude·stats ${{ github.ref_name }} — macOS
+
+            **Unsigned / un-notarized** build (no Apple Developer account in CI), so
+            Gatekeeper will block it on first launch. To run it:
+
+            - Right-click the app → **Open** → confirm, **or**
+            - `xattr -dr com.apple.quarantine claude_stats.app`
+
+            Built from `${{ github.sha }}`.
