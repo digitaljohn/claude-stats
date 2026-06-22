@@ -39,6 +39,10 @@ dependencies:
   # Opens the GitHub release page in the default browser (update check).
   url_launcher: ^6.3.0
 
+  # macOS menu-bar (NSStatusItem) residency: live usage % title + custom icon
+  # + context menu, with click-to-toggle the window.
+  tray_manager: ^0.5.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -52,3 +56,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/tray/
