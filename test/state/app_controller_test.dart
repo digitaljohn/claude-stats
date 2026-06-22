@@ -365,5 +365,20 @@ void main() {
       await c.openDownloadUrl();
       expect(launched.single.toString(), 'https://gh/rel');
     });
+
+    test('openUrl launches an arbitrary url', () async {
+      final launched = <Uri>[];
+      final c = AppController(
+        store: FakeStore(),
+        api: FakeApi(),
+        urlLauncher: (u) async {
+          launched.add(u);
+          return true;
+        },
+      );
+      addTearDown(c.dispose);
+      await c.openUrl('https://example.com/x');
+      expect(launched.single.toString(), 'https://example.com/x');
+    });
   });
 }

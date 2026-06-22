@@ -279,12 +279,15 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Opens an arbitrary external URL in the default browser.
+  Future<void> openUrl(String url) => _launchUrl(Uri.parse(url));
+
   /// Opens the available release's page in the default browser. No-op if there
   /// is no pending update.
   Future<void> openDownloadUrl() async {
     final info = availableUpdate;
     if (info == null) return;
-    await _launchUrl(Uri.parse(info.url));
+    await openUrl(info.url);
   }
 
   @override

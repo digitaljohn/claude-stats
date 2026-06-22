@@ -95,8 +95,18 @@ class _TitleBar extends StatelessWidget {
             children: [
               // Clearance for the native traffic-light cluster (~70px wide).
               const SizedBox(width: 80),
-              title,
-              const Spacer(),
+              // Take the slack and scale the wordmark down if the bar gets tight
+              // (narrow window / extra action buttons) so it never overflows.
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: title,
+                  ),
+                ),
+              ),
               // Space the action buttons apart so their hover fills read as
               // distinct pills. Nudge the cluster down ~2px: the icon glyphs are
               // taller than the wordmark's cap height, so box-centring leaves

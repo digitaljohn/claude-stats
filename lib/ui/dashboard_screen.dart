@@ -14,6 +14,13 @@ import 'widgets/chart_data.dart';
 import 'widgets/usage_ring.dart';
 import 'widgets/window_scaffold.dart';
 
+/// Support link surfaced in the title bar.
+const String _buyMeACoffeeUrl = 'https://www.buymeacoffee.com/digitaljohn';
+
+/// Screenshot helper: `--dart-define=hideDemoBanner=true` suppresses the demo
+/// banner for clean marketing captures. No effect on normal builds.
+const bool _hideDemoBanner = bool.fromEnvironment('hideDemoBanner');
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, required this.controller});
   final AppController controller;
@@ -32,9 +39,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final usage = c.usage;
     final s = c.settings;
+    final showDemoBanner = c.isDemo && !_hideDemoBanner;
     return WindowScaffold(
       titleBarColor: AppColors.ink,
       actions: [
+        TitleBarButton(
+          icon: Icons.coffee_rounded,
+          tooltip: 'Buy me a coffee',
+          onTap: () => c.openUrl(_buyMeACoffeeUrl),
+        ),
         TitleBarButton(
           icon: Icons.refresh,
           tooltip: 'Refresh',
@@ -68,9 +81,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                if (c.isDemo) const _Banner.demo(),
+                if (showDemoBanner) const _Banner.demo(),
                 if (c.error != null) _Banner.error(c.error!),
-                if (c.isDemo || c.error != null) const SizedBox(height: 12),
+                if (showDemoBanner || c.error != null) const SizedBox(height: 12),
                 if (s.compactMode)
                   _compact(usage, s)
                 else
@@ -431,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        Text(c.isDemo ? 'DEMO DATA' : 'LIVE',
+        Text((c.isDemo && !_hideDemoBanner) ? 'DEMO DATA' : 'LIVE',
             style: AppText.mono(AppColors.textFaint, size: 9)),
         const Spacer(),
         UpdatedAgo(updated: c.lastUpdated),
