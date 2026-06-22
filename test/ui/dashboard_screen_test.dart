@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:claude_stats/data/update_checker.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
-import 'package:claude_stats/state/settings.dart';
 import 'package:claude_stats/ui/dashboard_screen.dart';
 import 'package:claude_stats/ui/settings_panel.dart';
 import 'package:claude_stats/ui/widgets/window_scaffold.dart';
@@ -77,25 +76,25 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('compact layout with an error banner and no last-update time',
+  testWidgets('error banner, no last-update time, maxed session ring',
       (tester) async {
     await useTallSurface(tester);
     final c = readyController(
       mode: AppMode.live,
-      // session maxed (RingCountdown in the compact ring tile), weekly mid.
+      // session maxed → RingCountdown in its window card; weekly mid → UsageRing.
       usage: screenSnapshot(session: 1.0, weekly: 0.2, models: false, extra: null),
-      settings: const Settings(compactMode: true),
       error: 'Session rejected (401).',
       history: someHistory(),
     );
     addTearDown(c.dispose);
-    await tester.pumpWidget(wrap(DashboardScreen(controller: c)));
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
 
     expect(find.textContaining('Session rejected'), findsOneWidget);
     expect(find.text('LIVE'), findsOneWidget);
     expect(find.textContaining('UPDATED —'), findsOneWidget);
-    // No optional cards.
-    expect(find.text('PER-MODEL · WEEKLY'), findsNothing);
+    // models:false → the per-model card shows its empty state; extra is hidden.
+    expect(find.text('PER-MODEL · WEEKLY'), findsOneWidget);
     expect(find.text('EXTRA USAGE'), findsNothing);
 
     await tester.pumpWidget(const SizedBox());

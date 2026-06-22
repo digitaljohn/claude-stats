@@ -8,7 +8,6 @@ void main() {
     expect(s.warnThreshold, 0.75);
     expect(s.dangerThreshold, 0.90);
     expect(s.use24h, false);
-    expect(s.compactMode, false);
     expect(s.refreshSeconds, 300);
     expect(s.alwaysOnTop, false);
     expect(s.showResetDate, false);
@@ -22,7 +21,6 @@ void main() {
       warnThreshold: 0.6,
       dangerThreshold: 0.8,
       use24h: true,
-      compactMode: true,
       refreshSeconds: 60,
       alwaysOnTop: true,
       showResetDate: true,
@@ -32,7 +30,6 @@ void main() {
     expect(n.warnThreshold, 0.6);
     expect(n.dangerThreshold, 0.8);
     expect(n.use24h, true);
-    expect(n.compactMode, true);
     expect(n.refreshSeconds, 60);
     expect(n.alwaysOnTop, true);
     expect(n.showResetDate, true);
@@ -45,7 +42,6 @@ void main() {
       warnThreshold: 0.7,
       dangerThreshold: 0.95,
       use24h: true,
-      compactMode: true,
       refreshSeconds: 900,
       alwaysOnTop: true,
       showResetDate: true,
@@ -61,7 +57,6 @@ void main() {
       warnThreshold: 0.7,
       dangerThreshold: 0.95,
       use24h: true,
-      compactMode: true,
       refreshSeconds: 900,
       alwaysOnTop: true,
       showResetDate: true,
@@ -72,7 +67,6 @@ void main() {
     expect(decoded.warnThreshold, 0.7);
     expect(decoded.dangerThreshold, 0.95);
     expect(decoded.use24h, true);
-    expect(decoded.compactMode, true);
     expect(decoded.refreshSeconds, 900);
     expect(decoded.alwaysOnTop, true);
     expect(decoded.showResetDate, true);
@@ -85,7 +79,6 @@ void main() {
     expect(s.warnThreshold, 0.75);
     expect(s.dangerThreshold, 0.90);
     expect(s.use24h, false);
-    expect(s.compactMode, false);
     expect(s.refreshSeconds, 300);
     expect(s.alwaysOnTop, false);
     expect(s.showResetDate, false);

@@ -32,7 +32,6 @@ void main() {
       warnThreshold: 0.7,
       dangerThreshold: 0.95,
       use24h: true,
-      compactMode: true,
       refreshSeconds: 900,
       alwaysOnTop: true,
       showResetDate: true,
@@ -42,7 +41,6 @@ void main() {
     expect(decoded.warnThreshold, 0.7);
     expect(decoded.dangerThreshold, 0.95);
     expect(decoded.use24h, true);
-    expect(decoded.compactMode, true);
     expect(decoded.refreshSeconds, 900);
     expect(decoded.alwaysOnTop, true);
     expect(decoded.showResetDate, true);

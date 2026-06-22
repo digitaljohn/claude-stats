@@ -103,11 +103,6 @@ class SettingsPanel extends StatelessWidget {
                   onChanged: (v) => _set(s.copyWith(showResetDate: v)),
                 ),
                 _ToggleRow(
-                  label: 'Compact mode',
-                  value: s.compactMode,
-                  onChanged: (v) => _set(s.copyWith(compactMode: v)),
-                ),
-                _ToggleRow(
                   label: 'Always on top',
                   value: s.alwaysOnTop,
                   onChanged: (v) => _set(s.copyWith(alwaysOnTop: v)),
