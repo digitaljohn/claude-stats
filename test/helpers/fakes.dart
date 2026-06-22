@@ -1,5 +1,6 @@
 import 'package:claude_stats/data/claude_api.dart';
 import 'package:claude_stats/data/session_store.dart';
+import 'package:claude_stats/data/update_checker.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/state/settings.dart';
@@ -105,6 +106,19 @@ class FakeApi extends ClaudeApiClient {
   void dispose() => disposed = true;
 }
 
+/// An [UpdateChecker] that returns a fixed [result] without touching the network.
+class FakeUpdateChecker extends UpdateChecker {
+  FakeUpdateChecker({this.result});
+
+  UpdateInfo? result;
+
+  @override
+  Future<UpdateInfo?> latestNewerThan(String currentVersion) async => result;
+
+  @override
+  void dispose() {}
+}
+
 /// A representative snapshot for screen tests. [session] defaults to a maxed-out
 /// window (so the in-ring `RingCountdown` path renders) and [weekly] to a
 /// mid-range value (so the percentage-text path renders) — covering both ring
@@ -151,8 +165,14 @@ AppController readyController({
   bool refreshing = false,
   FakeStore? store,
   FakeApi? api,
+  UpdateInfo? availableUpdate,
+  Future<bool> Function(Uri)? urlLauncher,
 }) {
-  final c = AppController(store: store ?? FakeStore(), api: api ?? FakeApi());
+  final c = AppController(
+    store: store ?? FakeStore(),
+    api: api ?? FakeApi(),
+    urlLauncher: urlLauncher,
+  );
   c.mode = mode;
   c.usage = usage;
   c.settings = settings;
@@ -160,6 +180,7 @@ AppController readyController({
   c.error = error;
   c.lastUpdated = lastUpdated;
   c.refreshing = refreshing;
+  c.availableUpdate = availableUpdate;
   return c;
 }
 

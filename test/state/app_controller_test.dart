@@ -4,6 +4,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:claude_stats/data/claude_api.dart';
+import 'package:claude_stats/data/update_checker.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/state/settings.dart';
@@ -313,6 +314,56 @@ void main() {
       async.flushMicrotasks();
       expect(api.fetchCalls, 2); // timer-driven refresh
       c.dispose();
+    });
+  });
+
+  group('update check', () {
+    test('checkForUpdates surfaces a newer release and notifies', () async {
+      final c = AppController(
+        store: FakeStore(),
+        api: FakeApi(),
+        updateChecker: FakeUpdateChecker(
+            result: const UpdateInfo(version: '9.9.9', url: 'https://gh/rel')),
+      );
+      addTearDown(c.dispose);
+      var notified = 0;
+      c.addListener(() => notified++);
+      await c.checkForUpdates();
+      expect(c.availableUpdate?.version, '9.9.9');
+      expect(notified, greaterThan(0));
+    });
+
+    test('checkForUpdates leaves availableUpdate null when none is newer',
+        () async {
+      final c = AppController(
+        store: FakeStore(),
+        api: FakeApi(),
+        updateChecker: FakeUpdateChecker(),
+      );
+      addTearDown(c.dispose);
+      await c.checkForUpdates();
+      expect(c.availableUpdate, isNull);
+    });
+
+    test('openDownloadUrl launches the release page, no-ops without an update',
+        () async {
+      final launched = <Uri>[];
+      final c = AppController(
+        store: FakeStore(),
+        api: FakeApi(),
+        urlLauncher: (u) async {
+          launched.add(u);
+          return true;
+        },
+      );
+      addTearDown(c.dispose);
+
+      await c.openDownloadUrl(); // no pending update -> no-op
+      expect(launched, isEmpty);
+
+      c.availableUpdate = const UpdateInfo(version: '9.9.9', url: 'https://gh/rel');
+      await c.openDownloadUrl();
+      expect(launched.single.toString(), 'https://gh/rel');
     });
   });
 }
