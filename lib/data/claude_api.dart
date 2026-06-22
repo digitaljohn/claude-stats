@@ -141,6 +141,7 @@ class ClaudeApiClient {
       weekly: win('seven_day', 'Weekly'),
       models: models,
       extra: extra,
+      rawKeys: data.keys.toList(),
     );
   }
 

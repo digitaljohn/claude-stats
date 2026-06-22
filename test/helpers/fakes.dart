@@ -128,6 +128,7 @@ UsageSnapshot screenSnapshot({
   double session = 1.0,
   double weekly = 0.5,
   bool models = true,
+  List<String> rawKeys = const [],
   ExtraUsage? extra = const ExtraUsage(
     isEnabled: true,
     currency: 'USD',
@@ -149,6 +150,7 @@ UsageSnapshot screenSnapshot({
             UsageWindow(key: 'seven_day_sonnet', label: 'Sonnet', utilization: 0.42, resetsAt: reset),
           ]
         : const [],
+    rawKeys: rawKeys,
     extra: extra,
   );
 }

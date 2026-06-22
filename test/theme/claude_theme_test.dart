@@ -51,7 +51,7 @@ void main() {
     expect(AppDims.radius, 12);
     expect(AppDims.radiusSm, 8);
     expect(AppDims.radiusXs, 6);
-    expect(AppDims.titleBarHeight, 44);
+    expect(AppDims.titleBarHeight, 34);
   });
 
   test('buildClaudeTheme produces a dark theme with accent primary', () {

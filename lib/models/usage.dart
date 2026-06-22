@@ -79,6 +79,7 @@ class UsageSnapshot {
     required this.weekly,
     this.models = const [],
     this.extra,
+    this.rawKeys = const [],
   });
 
   final DateTime fetchedAt;
@@ -86,6 +87,10 @@ class UsageSnapshot {
   final UsageWindow weekly; // seven_day
   final List<UsageWindow> models; // per-model 7-day windows
   final ExtraUsage? extra;
+
+  /// Top-level keys of the raw `/usage` response — surfaced as a diagnostic when
+  /// no per-model windows are found, so it's clear what the API actually sent.
+  final List<String> rawKeys;
 }
 
 /// A persisted history sample for the 7-day chart.

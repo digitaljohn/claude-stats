@@ -150,6 +150,9 @@ void main() {
       expect(snap.weekly.utilization, 0); // defaulted
       expect(snap.models.map((m) => m.label), ['Opus', 'Sonnet']);
       expect(snap.extra, isNull);
+      // Raw top-level keys are retained for the diagnostic empty-state.
+      expect(snap.rawKeys,
+          ['five_hour', 'seven_day_opus', 'seven_day_sonnet', 'seven_day_cowork']);
     });
 
     test('discovers every seven_day_* model, humanising unknown keys', () async {

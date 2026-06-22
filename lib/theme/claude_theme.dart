@@ -52,7 +52,7 @@ class AppDims {
   static const double radius = 12;
   static const double radiusSm = 8;
   static const double radiusXs = 6;
-  static const double titleBarHeight = 44; // room for macOS traffic lights
+  static const double titleBarHeight = 34; // room for macOS traffic lights
 }
 
 /// Typography. Hanken Grotesk is the closest freely-available stand-in for

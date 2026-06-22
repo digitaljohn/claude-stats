@@ -100,10 +100,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _windowCard(u.weekly, settings),
         const SizedBox(height: 12),
         _chartCard(settings),
-        if (u.models.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _modelsCard(u.models, settings),
-        ],
+        const SizedBox(height: 12),
+        _modelsCard(u, settings),
         if (u.extra != null && u.extra!.isEnabled) ...[
           const SizedBox(height: 12),
           _extraCard(u.extra!),
@@ -326,17 +324,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── per-model breakdown ────────────────────────────────────────────────────
 
-  Widget _modelsCard(List<UsageWindow> models, Settings settings) {
+  Widget _modelsCard(UsageSnapshot u, Settings settings) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionLabel('Per-model · weekly'),
           const SizedBox(height: 14),
-          for (var i = 0; i < models.length; i++) ...[
-            if (i > 0) const SizedBox(height: 12),
-            _modelRow(models[i], settings),
-          ],
+          if (u.models.isEmpty) ...[
+            // Don't hide silently — say so, and show what the API did return so
+            // it's clear whether a model (e.g. Opus) is simply absent upstream.
+            Text('No per-model limits reported for this account.',
+                style: AppText.body(AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            Text(
+                'API returned: '
+                '${u.rawKeys.isEmpty ? '—' : u.rawKeys.join(', ')}',
+                style: AppText.mono(AppColors.textFaint, size: 9)),
+          ] else
+            for (var i = 0; i < u.models.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _modelRow(u.models[i], settings),
+            ],
         ],
       ),
     );

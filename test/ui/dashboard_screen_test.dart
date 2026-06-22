@@ -148,4 +148,26 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('per-model empty state names what the API returned',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(
+      mode: AppMode.live,
+      usage: screenSnapshot(
+        models: false,
+        rawKeys: const ['five_hour', 'seven_day'],
+      ),
+      history: someHistory(),
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
+
+    expect(find.text('PER-MODEL · WEEKLY'), findsOneWidget);
+    expect(find.textContaining('No per-model limits'), findsOneWidget);
+    expect(find.textContaining('five_hour, seven_day'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+  });
 }
