@@ -2,15 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../theme/claude_theme.dart';
-
 /// Time-binned column chart, Claude-styled.
 ///
 /// [bins] is a fixed-length, time-accurate series (see `binnedSeries`): one
 /// uniform time slice per entry, oldest first, where `null` means "no data in
 /// that slice" (an honest gap) and a value is that slice's peak utilisation
-/// (0..1). Every [binsPerDay] entries make up one day, so faint vertical
-/// gridlines mark the day boundaries.
+/// (0..1). A faint vertical gridline is drawn every [gridEvery] slices, marking
+/// the section boundaries (days at the week zoom, hours at shorter zooms).
 ///
 /// Bars are cream by default and only adopt amber/red where their value breaches
 /// [warnAt] / [dangerAt]. A no-data slice draws nothing (bare baseline), which
@@ -20,7 +18,7 @@ class ChartColumns extends StatelessWidget {
   const ChartColumns({
     super.key,
     required this.bins,
-    required this.binsPerDay,
+    required this.gridEvery,
     required this.warnAt,
     required this.dangerAt,
   });
@@ -28,8 +26,8 @@ class ChartColumns extends StatelessWidget {
   /// Fixed time slices, oldest → newest; `null` = no data recorded in the slice.
   final List<double?> bins;
 
-  /// How many slices make one day (for the day gridlines).
-  final int binsPerDay;
+  /// A faint vertical gridline is drawn every [gridEvery] slices.
+  final int gridEvery;
 
   final double warnAt; // 0..1
   final double dangerAt; // 0..1
@@ -48,7 +46,7 @@ class ChartColumns extends StatelessWidget {
           willChange: false,
           painter: _ColumnsPainter(
             bins: bins,
-            binsPerDay: binsPerDay,
+            gridEvery: gridEvery,
             warnAt: warnAt,
             dangerAt: dangerAt,
           ),
@@ -61,13 +59,13 @@ class ChartColumns extends StatelessWidget {
 class _ColumnsPainter extends CustomPainter {
   _ColumnsPainter({
     required this.bins,
-    required this.binsPerDay,
+    required this.gridEvery,
     required this.warnAt,
     required this.dangerAt,
   });
 
   final List<double?> bins;
-  final int binsPerDay;
+  final int gridEvery;
   final double warnAt;
   final double dangerAt;
 
@@ -108,18 +106,18 @@ class _ColumnsPainter extends CustomPainter {
 
     final baseY = plotBottom;
 
-    // Faint vertical day separators (every [binsPerDay] slices = one day).
+    // Faint vertical section separators (every [gridEvery] slices).
     final total = bins.length;
-    final days = (binsPerDay > 0) ? (total / binsPerDay) : 0.0;
-    if (days > 1) {
-      final dayPaint = Paint()
+    final sections = (gridEvery > 0) ? (total / gridEvery) : 0.0;
+    if (sections > 1) {
+      final sectionPaint = Paint()
         ..isAntiAlias = false
         ..color = _day
         ..strokeWidth = 1.0;
-      final dayW = plotW / days;
-      for (var d = 1; d < days; d++) {
-        final x = (plotLeft + d * dayW).roundToDouble() + 0.5;
-        canvas.drawLine(Offset(x, plotTop), Offset(x, baseY), dayPaint);
+      final sectionW = plotW / sections;
+      for (var d = 1; d < sections; d++) {
+        final x = (plotLeft + d * sectionW).roundToDouble() + 0.5;
+        canvas.drawLine(Offset(x, plotTop), Offset(x, baseY), sectionPaint);
       }
     }
 
@@ -229,7 +227,7 @@ class _ColumnsPainter extends CustomPainter {
   bool shouldRepaint(covariant _ColumnsPainter old) {
     return old.warnAt != warnAt ||
         old.dangerAt != dangerAt ||
-        old.binsPerDay != binsPerDay ||
+        old.gridEvery != gridEvery ||
         !listEquals(old.bins, bins);
   }
 }

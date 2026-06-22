@@ -9,8 +9,8 @@ import 'settings_panel.dart';
 import 'widgets/app_card.dart';
 import 'widgets/countdown_text.dart';
 import 'widgets/heat_bar.dart';
-import 'widgets/chart_columns.dart';
 import 'widgets/chart_data.dart';
+import 'widgets/history_chart_card.dart';
 import 'widgets/usage_ring.dart';
 import 'widgets/window_scaffold.dart';
 
@@ -31,10 +31,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   ChartSeries _series = ChartSeries.session;
-
-  // 7-day window split into 6-hour slices (4/day) — fine enough to show daily
-  // rhythm, coarse enough to stay readable and consistent at the card size.
-  static const int _binsPerDay = 4;
+  ChartZoom _zoom = ChartZoom.week;
   bool _showSettings = const bool.fromEnvironment('settings');
 
   AppController get c => widget.controller;
@@ -116,7 +113,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 12),
         _windowCard(u.weekly, settings),
         const SizedBox(height: 12),
-        _chartCard(settings),
+        _historyCard(u, settings),
         const SizedBox(height: 12),
         _modelsCard(u, settings),
         if (u.extra != null && u.extra!.isEnabled) ...[
@@ -230,114 +227,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ── 7-day history chart card (CustomPaint columns) ─────────────────────────
+  // ── usage-history chart card ───────────────────────────────────────────────
 
-  Widget _chartCard(Settings settings) {
-    final u = c.usage!;
+  Widget _historyCard(UsageSnapshot u, Settings settings) {
     final current = _series == ChartSeries.session ? u.session : u.weekly;
-    final color = AppColors.heat(current.utilization,
-        warnAt: settings.warnThreshold, dangerAt: settings.dangerThreshold);
-    return AppCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const SectionLabel('7-day history'),
-              const Spacer(),
-              _seriesToggle(),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppDims.radiusSm),
-              border: Border.all(color: AppColors.border),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: SizedBox(
-              height: 150,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: ChartColumns(
-                      bins: binnedSeries(c.history, _series,
-                          now: DateTime.now(), binsPerDay: _binsPerDay),
-                      binsPerDay: _binsPerDay,
-                      warnAt: settings.warnThreshold,
-                      dangerAt: settings.dangerThreshold,
-                    ),
-                  ),
-                  Positioned(
-                    left: 12,
-                    top: 10,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${current.percent}%',
-                            style: AppText.stat(color)),
-                        Text('NOW', style: AppText.mono(AppColors.textFaint, size: 9)),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    left: 12,
-                    right: 12,
-                    bottom: 8,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('−7D', style: AppText.mono(AppColors.textFaint, size: 9)),
-                        Text('NOW', style: AppText.mono(AppColors.textFaint, size: 9)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _seriesToggle() {
-    Widget seg(String label, ChartSeries v) {
-      final active = _series == v;
-      return GestureDetector(
-        onTap: () => setState(() => _series = v),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: active ? AppColors.accent.withValues(alpha: 0.18) : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(
-                color: active ? AppColors.accent.withValues(alpha: 0.5) : Colors.transparent),
-          ),
-          child: Text(label,
-              style: AppText.mono(
-                  active ? AppColors.accent : AppColors.textFaint,
-                  size: 10)),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          seg('SESSION', ChartSeries.session),
-          seg('WEEKLY', ChartSeries.weekly),
-        ],
-      ),
+    return HistoryChartCard(
+      history: c.history,
+      series: _series,
+      zoom: _zoom,
+      currentUtil: current.utilization,
+      percent: current.percent,
+      warnAt: settings.warnThreshold,
+      dangerAt: settings.dangerThreshold,
+      now: DateTime.now(),
+      onSeries: (v) => setState(() => _series = v),
+      onZoom: (v) => setState(() => _zoom = v),
     );
   }
 

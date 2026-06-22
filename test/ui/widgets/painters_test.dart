@@ -76,10 +76,10 @@ void main() {
 
   group('ChartColumns painter', () {
     Widget chart(List<double?> bins,
-            {int binsPerDay = 4, double w = 358, double h = 150}) =>
+            {int gridEvery = 4, double w = 358, double h = 150}) =>
         wrap(
           ChartColumns(
-              bins: bins, binsPerDay: binsPerDay, warnAt: 0.75, dangerAt: 0.90),
+              bins: bins, gridEvery: gridEvery, warnAt: 0.75, dangerAt: 0.90),
           size: Size(w, h),
         );
 
@@ -109,8 +109,8 @@ void main() {
     });
 
     testWidgets('a single-day window draws no day separators', (tester) async {
-      // binsPerDay == length → days == 1 → the gridline branch is skipped.
-      await tester.pumpWidget(chart(const [0.1, 0.5, 0.9, 0.4], binsPerDay: 4));
+      // gridEvery == length → days == 1 → the gridline branch is skipped.
+      await tester.pumpWidget(chart(const [0.1, 0.5, 0.9, 0.4], gridEvery: 4));
       await tester.pump();
     });
 
