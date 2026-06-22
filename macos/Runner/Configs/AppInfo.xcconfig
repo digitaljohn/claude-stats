@@ -8,7 +8,7 @@
 PRODUCT_NAME = claude_stats
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.rode.claudeStats
+PRODUCT_BUNDLE_IDENTIFIER = uk.co.digitaljohn.claudeStats
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.rode. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 digitaljohn. All rights reserved.

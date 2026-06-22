@@ -1,5 +1,5 @@
 name: claude_stats
-description: "Claude usage widget — a minimal, Claude-themed desktop monitor."
+description: "A minimal, Claude-themed macOS widget that tracks your Claude.ai usage limits."
 publish_to: 'none'
 version: 1.0.0+1
 
