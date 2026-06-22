@@ -12,6 +12,7 @@ import 'theme/claude_theme.dart';
 import 'ui/dashboard_screen.dart';
 import 'ui/mini_screen.dart';
 import 'ui/sign_in_screen.dart';
+import 'ui/tray.dart';
 import 'ui/widgets/window_scaffold.dart';
 
 /// When set via `--dart-define=shotpath=/abs/file.png`, the app captures its
@@ -54,6 +55,8 @@ Future<void> main() async {
   runApp(ClaudeStatsApp(controller: controller));
   // Fire-and-forget: surface a banner if a newer GitHub release exists.
   controller.checkForUpdates();
+  // Live in the menu bar (NSStatusItem) showing the session %.
+  await TrayController(controller).init();
 }
 // coverage:ignore-end
 
