@@ -92,9 +92,10 @@ class _ColumnsPainter extends CustomPainter {
     final h = size.height;
     if (w <= 0 || h <= 0) return;
 
-    // Inset so rounded tops and baseline aren't clipped.
+    // Inset so rounded tops aren't clipped (top) and the bottom axis labels
+    // drawn over the chart have a clear band beneath the bars (bottom).
     const padTop = 10.0;
-    const padBottom = 8.0;
+    const padBottom = 22.0;
     const padSide = 1.0;
     final plotTop = padTop;
     final plotBottom = (h - padBottom).clamp(padTop + 1.0, h);

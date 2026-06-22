@@ -104,9 +104,9 @@ class HistoryChartCard extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    left: 12,
-                    right: 12,
-                    bottom: 8,
+                    left: 3,
+                    right: 3,
+                    bottom: 5,
                     child: _AxisLabels(zoom: zoom, now: now),
                   ),
                 ],
