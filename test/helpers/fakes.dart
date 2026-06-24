@@ -76,12 +76,14 @@ class FakeApi extends ClaudeApiClient {
   static UsageSnapshot snapshotWith({
     double session = 0.5,
     double weekly = 0.5,
+    List<UsageWindow> models = const [],
     DateTime? fetchedAt,
   }) {
     return UsageSnapshot(
       fetchedAt: fetchedAt ?? DateTime(2026, 6, 22, 12),
       session: UsageWindow(key: 'five_hour', label: 'Session', utilization: session),
       weekly: UsageWindow(key: 'seven_day', label: 'Weekly', utilization: weekly),
+      models: models,
     );
   }
 

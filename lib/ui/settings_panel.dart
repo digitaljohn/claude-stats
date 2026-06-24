@@ -60,6 +60,23 @@ class SettingsPanel extends StatelessWidget {
                       warnThreshold:
                           v <= s.warnThreshold ? (v - 0.02).clamp(0, 1) : null)),
                 ),
+                const SizedBox(height: 6),
+                Container(height: 1, color: AppColors.border),
+                _ToggleRow(
+                  label: 'Per-model alerts',
+                  value: s.modelAlertsEnabled,
+                  onChanged: (v) => _set(s.copyWith(modelAlertsEnabled: v)),
+                  last: true,
+                ),
+                _SliderRow(
+                  label: 'Model',
+                  color: AppColors.accent,
+                  value: s.modelAlertThreshold,
+                  min: 0.5,
+                  max: 1.0,
+                  onChanged: (v) =>
+                      _set(s.copyWith(modelAlertThreshold: v)),
+                ),
               ],
             ),
           ),

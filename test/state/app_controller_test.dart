@@ -245,6 +245,66 @@ void main() {
       await c.bootstrap();
       expect(notifications, isEmpty);
     });
+
+    UsageWindow opus(double u) =>
+        UsageWindow(key: 'seven_day_opus', label: 'Opus', utilization: u);
+
+    test('fires a per-model alert once, then re-arms after a cool-off', () async {
+      final store = FakeStore(
+        sessionKey: 'sk',
+        orgId: 'o',
+        settings: const Settings(modelAlertThreshold: 0.90),
+      );
+      final api = FakeApi();
+      var opusUtil = 0.93; // over the model threshold
+      var minute = 0;
+      api.snapshotBuilder = () => FakeApi.snapshotWith(
+            session: 0.1,
+            weekly: 0.1,
+            models: [opus(opusUtil)],
+            fetchedAt: DateTime(2026, 6, 22, 12, minute += 3),
+          );
+      final c = make(store, api);
+      await c.bootstrap();
+      expect(notifications.length, 1);
+      expect(notifications.single['title'], 'Opus usage high');
+
+      // Still high → already armed, no duplicate.
+      opusUtil = 0.95;
+      await c.refresh();
+      expect(notifications.length, 1);
+
+      // Dips just below the threshold but inside the hysteresis band → stays
+      // quiet and does NOT re-arm.
+      opusUtil = 0.80; // threshold 0.90, re-arm only below 0.75
+      await c.refresh();
+      expect(notifications.length, 1);
+
+      // Drops below the re-arm level, then climbs back → fires again.
+      opusUtil = 0.50;
+      await c.refresh();
+      opusUtil = 0.92;
+      await c.refresh();
+      expect(notifications.length, 2);
+    });
+
+    test('per-model alerts can be disabled independently of general alerts',
+        () async {
+      final store = FakeStore(
+        sessionKey: 'sk',
+        orgId: 'o',
+        settings: const Settings(modelAlertsEnabled: false),
+      );
+      final api = FakeApi()
+        ..snapshotBuilder = () => FakeApi.snapshotWith(
+              session: 0.1,
+              weekly: 0.1,
+              models: [opus(0.99)],
+            );
+      final c = make(store, api);
+      await c.bootstrap();
+      expect(notifications, isEmpty);
+    });
   });
 
   group('settings + window mode', () {

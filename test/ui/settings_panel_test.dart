@@ -59,6 +59,36 @@ void main() {
     expect(c.mode, AppMode.signedOut);
   });
 
+  testWidgets('per-model alert controls update the threshold and toggle',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(mode: AppMode.demo, store: FakeStore());
+    addTearDown(c.dispose);
+
+    await tester.pumpWidget(wrap(
+      SettingsPanel(controller: c, onClose: () {}),
+      size: const Size(420, 1500),
+    ));
+
+    expect(c.settings.modelAlertsEnabled, true);
+
+    // The thresholds card now holds three sliders: warn, danger, model.
+    final sliders = find.byType(Slider);
+    expect(sliders, findsNWidgets(3));
+    await tester.drag(sliders.at(2), const Offset(-300, 0)); // model -> lower
+    await tester.pump();
+    expect(c.settings.modelAlertThreshold, lessThan(0.90));
+
+    // Toggle per-model alerts off.
+    final perModelSwitch = find.descendant(
+      of: find.widgetWithText(Row, 'Per-model alerts'),
+      matching: find.byType(Switch),
+    );
+    await tester.tap(perModelSwitch);
+    await tester.pump();
+    expect(c.settings.modelAlertsEnabled, false);
+  });
+
   testWidgets('connected account shows the live copy and a close button works',
       (tester) async {
     await useTallSurface(tester);
