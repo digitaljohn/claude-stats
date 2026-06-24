@@ -38,7 +38,7 @@ class MiniScreen extends StatelessWidget {
         ),
       ],
       child: u == null
-          ? const Center(
+          ? Center(
               child: SizedBox(
                 width: 18,
                 height: 18,

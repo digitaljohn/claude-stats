@@ -108,7 +108,7 @@ class _LoginWebViewState extends State<LoginWebView> {
                   },
                 ),
                 if (_loading)
-                  const Align(
+                  Align(
                     alignment: Alignment.topCenter,
                     child: LinearProgressIndicator(
                       minHeight: 2,
@@ -128,7 +128,7 @@ class _LoginWebViewState extends State<LoginWebView> {
     final secure = _url.startsWith('https://');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),

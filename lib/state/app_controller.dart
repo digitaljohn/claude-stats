@@ -10,6 +10,7 @@ import '../data/demo_data.dart';
 import '../data/session_store.dart';
 import '../data/update_checker.dart';
 import '../models/usage.dart';
+import '../theme/claude_theme.dart';
 import 'settings.dart';
 
 enum AppMode { loading, signedOut, demo, live }
@@ -59,6 +60,7 @@ class AppController extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     settings = await _store.readSettings();
+    _applyTheme();
     history = await _store.readHistory();
     if (const bool.fromEnvironment('mini')) {
       settings = settings.copyWith(mini: true); // coverage:ignore-line
@@ -189,10 +191,18 @@ class AppController extends ChangeNotifier {
     final intervalChanged = next.refreshSeconds != settings.refreshSeconds;
     final onTopChanged = next.alwaysOnTop != settings.alwaysOnTop;
     settings = next;
+    _applyTheme();
     notifyListeners();
     await _store.writeSettings(next);
     if (onTopChanged) await _applyAlwaysOnTop();
     if (intervalChanged && mode == AppMode.live) _startTimer();
+  }
+
+  /// Publishes the active palette so static [AppColors] tokens (incl. painters)
+  /// resolve against the user's chosen theme. The [MaterialApp] reads the same
+  /// [Settings.themeMode] to pick its [ThemeData].
+  void _applyTheme() {
+    AppColors.current = AppPalette.of(settings.themeMode);
   }
 
   Future<void> _applyAlwaysOnTop() async {

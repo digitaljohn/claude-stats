@@ -1,39 +1,177 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Claude-brand design tokens: warm dark charcoal surfaces (not true black),
-/// cream off-white typography, and Claude's clay-orange used sparingly for
-/// brand + interaction. State still runs cream → amber → red, so a hot ring
-/// always reads as "pay attention" against the neutral palette.
+/// Which Claude palette is active. Persisted via [Settings].
+enum AppThemeMode { dark, light }
+
+/// A full set of Claude-brand colour tokens for one brightness. Two instances
+/// exist — [AppPalette.dark] and [AppPalette.light] — and the active one is
+/// published through [AppColors.current] so that static call sites (including
+/// custom painters that can't reach `Theme.of(context)`) all read the same
+/// selected palette at paint time.
+@immutable
+class AppPalette {
+  const AppPalette({
+    required this.brightness,
+    required this.ink,
+    required this.surface,
+    required this.surfaceRaised,
+    required this.hover,
+    required this.border,
+    required this.borderStrong,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textFaint,
+    required this.accent,
+    required this.accentHover,
+    required this.good,
+    required this.warn,
+    required this.danger,
+    required this.onAccent,
+    required this.gridLine,
+    required this.gridSection,
+    required this.topGlow,
+    required this.bottomVignette,
+    required this.cardShadow,
+    required this.primaryButtonFill,
+    required this.primaryButtonFillHover,
+    required this.primaryButtonText,
+  });
+
+  final Brightness brightness;
+
+  // Surfaces: window base → raised pills/inputs.
+  final Color ink;
+  final Color surface;
+  final Color surfaceRaised;
+  final Color hover;
+
+  // Hairlines.
+  final Color border;
+  final Color borderStrong;
+
+  // Text ramp.
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textFaint;
+
+  // Brand / interactive accent.
+  final Color accent;
+  final Color accentHover;
+
+  // Usage state ramp: neutral → amber → red.
+  final Color good;
+  final Color warn;
+  final Color danger;
+
+  // Foreground on the clay accent.
+  final Color onAccent;
+
+  // Painter-only tokens (the [GridBackground] backdrop + [ChartColumns] frame).
+  final Color gridLine; // faint hairline grid
+  final Color gridSection; // even fainter day separators
+  final Color topGlow; // radial lift at the top of the backdrop
+  final Color bottomVignette; // bottom fade of the backdrop
+
+  // Sign-in card elevation + monochrome CTA.
+  final Color cardShadow;
+  final Color primaryButtonFill;
+  final Color primaryButtonFillHover;
+  final Color primaryButtonText;
+
+  /// Claude dark mode: warm charcoal surfaces (not true black), cream off-white
+  /// typography, clay-orange brand accent.
+  static const AppPalette dark = AppPalette(
+    brightness: Brightness.dark,
+    ink: Color(0xFF1F1E1D),
+    surface: Color(0xFF262624),
+    surfaceRaised: Color(0xFF30302E),
+    hover: Color(0xFF3A3A37),
+    border: Color(0x14FAF9F5), // cream @ ~8%
+    borderStrong: Color(0x24FAF9F5), // cream @ ~14%
+    textPrimary: Color(0xFFF5F4EE),
+    textSecondary: Color(0xFFA6A399),
+    textFaint: Color(0xFF6E6C64),
+    accent: Color(0xFFD97757),
+    accentHover: Color(0xFFE08C70),
+    good: Color(0xFFF5F4EE),
+    warn: Color(0xFFE8A13C),
+    danger: Color(0xFFE5564B),
+    onAccent: Color(0xFF1F1410),
+    gridLine: Color(0x12FAF9F5),
+    gridSection: Color(0x0AFAF9F5),
+    topGlow: Color(0x12FAF9F5),
+    bottomVignette: Color(0x66161514),
+    cardShadow: Color(0x88000000),
+    primaryButtonFill: Color(0xFFF5F4EE), // cream fill
+    primaryButtonFillHover: Color(0xFFFFFFFF),
+    primaryButtonText: Color(0xFF1F1E1D), // dark ink
+  );
+
+  /// Claude light mode: warm ivory/paper base, raised warm surfaces, charcoal
+  /// text, the same clay-orange accent and warn/danger semantics.
+  static const AppPalette light = AppPalette(
+    brightness: Brightness.light,
+    ink: Color(0xFFF5F2EC), // warm ivory window base
+    surface: Color(0xFFFBF9F4), // raised paper cards
+    surfaceRaised: Color(0xFFFFFFFF), // inputs / pills sit brightest
+    hover: Color(0xFFEEEAE1),
+    border: Color(0x14262420), // warm charcoal @ ~8%
+    borderStrong: Color(0x2E262420), // warm charcoal @ ~18%
+    textPrimary: Color(0xFF262420), // readable charcoal
+    textSecondary: Color(0xFF6B675E),
+    textFaint: Color(0xFF99948A),
+    accent: Color(0xFFC55F3F), // slightly deeper clay for contrast on paper
+    accentHover: Color(0xFFAE4F31),
+    good: Color(0xFF4A463E), // dark neutral reads as "fine" on light
+    warn: Color(0xFFC9810E), // amber, darkened for contrast
+    danger: Color(0xFFC8362B), // red, darkened for contrast
+    onAccent: Color(0xFFFBF9F4),
+    gridLine: Color(0x0F262420), // faint charcoal hairline
+    gridSection: Color(0x08262420),
+    topGlow: Color(0x18FFFFFF), // soft white lift
+    bottomVignette: Color(0x14262420),
+    cardShadow: Color(0x22463E33),
+    primaryButtonFill: Color(0xFF2B2925), // dark ink fill
+    primaryButtonFillHover: Color(0xFF1F1E1D),
+    primaryButtonText: Color(0xFFF5F2EC), // ivory text
+  );
+
+  static AppPalette of(AppThemeMode mode) =>
+      mode == AppThemeMode.light ? light : dark;
+}
+
+/// Claude-brand design tokens. The values delegate to the active [AppPalette]
+/// ([AppColors.current]), so the same call sites adapt when the user switches
+/// between the dark and light themes — including in custom painters that read
+/// these statically at paint time rather than from `Theme.of(context)`.
 class AppColors {
   AppColors._(); // coverage:ignore-line
 
-  // Warm charcoal surfaces (Claude dark mode: darkest → raised).
-  static const Color ink = Color(0xFF1F1E1D); // window base
-  static const Color surface = Color(0xFF262624); // cards
-  static const Color surfaceRaised = Color(0xFF30302E); // inputs / pills
-  static const Color hover = Color(0xFF3A3A37);
+  /// The palette every token below resolves against. Defaults to dark for
+  /// backwards compatibility; [AppController] updates it from saved settings.
+  static AppPalette current = AppPalette.dark;
 
-  // Hairlines — warm white at low alpha.
-  static const Color border = Color(0x14FAF9F5); // cream @ ~8%
-  static const Color borderStrong = Color(0x24FAF9F5); // cream @ ~14%
+  static Color get ink => current.ink;
+  static Color get surface => current.surface;
+  static Color get surfaceRaised => current.surfaceRaised;
+  static Color get hover => current.hover;
 
-  // Text — Claude's warm cream ramp.
-  static const Color textPrimary = Color(0xFFF5F4EE);
-  static const Color textSecondary = Color(0xFFA6A399);
-  static const Color textFaint = Color(0xFF6E6C64);
+  static Color get border => current.border;
+  static Color get borderStrong => current.borderStrong;
 
-  // Brand / interactive accent = Claude clay orange.
-  static const Color accent = Color(0xFFD97757);
-  static const Color accentHover = Color(0xFFE08C70);
+  static Color get textPrimary => current.textPrimary;
+  static Color get textSecondary => current.textSecondary;
+  static Color get textFaint => current.textFaint;
 
-  // Usage state ramp: neutral cream → warm amber → warm red.
-  static const Color good = Color(0xFFF5F4EE);
-  static const Color warn = Color(0xFFE8A13C); // amber
-  static const Color danger = Color(0xFFE5564B); // red
+  static Color get accent => current.accent;
+  static Color get accentHover => current.accentHover;
 
-  // Foreground on the clay accent (button labels, etc).
-  static const Color onAccent = Color(0xFF1F1410);
+  static Color get good => current.good;
+  static Color get warn => current.warn;
+  static Color get danger => current.danger;
+
+  static Color get onAccent => current.onAccent;
 
   /// State colour for a 0..1 utilisation given warn/danger thresholds (0..1).
   static Color heat(double t, {double warnAt = 0.75, double dangerAt = 0.90}) {
@@ -121,30 +259,35 @@ class AppText {
       );
 }
 
-ThemeData buildClaudeTheme() {
-  final base = ThemeData.dark(useMaterial3: true);
+/// Builds the [ThemeData] for the given [palette]. Used for both the dark and
+/// light themes; pass [AppPalette.dark] (the default) or [AppPalette.light].
+ThemeData buildClaudeTheme([AppPalette palette = AppPalette.dark]) {
+  final base = palette.brightness == Brightness.light
+      ? ThemeData.light(useMaterial3: true)
+      : ThemeData.dark(useMaterial3: true);
   return base.copyWith(
-    scaffoldBackgroundColor: AppColors.ink,
-    canvasColor: AppColors.ink,
+    scaffoldBackgroundColor: palette.ink,
+    canvasColor: palette.ink,
     colorScheme: base.colorScheme.copyWith(
-      brightness: Brightness.dark,
-      primary: AppColors.accent,
-      surface: AppColors.surface,
-      onSurface: AppColors.textPrimary,
-      secondary: AppColors.accent,
+      brightness: palette.brightness,
+      primary: palette.accent,
+      onPrimary: palette.onAccent,
+      surface: palette.surface,
+      onSurface: palette.textPrimary,
+      secondary: palette.accent,
     ),
     textTheme: base.textTheme.apply(
-      bodyColor: AppColors.textPrimary,
-      displayColor: AppColors.textPrimary,
+      bodyColor: palette.textPrimary,
+      displayColor: palette.textPrimary,
       fontFamily: GoogleFonts.hankenGrotesk().fontFamily,
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
+        color: palette.surfaceRaised,
         borderRadius: BorderRadius.circular(AppDims.radiusSm),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: palette.border),
       ),
-      textStyle: AppText.label(AppColors.textPrimary),
+      textStyle: AppText.label(palette.textPrimary),
     ),
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,

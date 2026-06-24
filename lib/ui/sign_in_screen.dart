@@ -73,8 +73,11 @@ class _SignInScreenState extends State<SignInScreen> {
         color: AppColors.surface.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(AppDims.radius),
         border: Border.all(color: AppColors.borderStrong),
-        boxShadow: const [
-          BoxShadow(color: Color(0x88000000), blurRadius: 40, spreadRadius: -8),
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.current.cardShadow,
+              blurRadius: 40,
+              spreadRadius: -8),
         ],
       ),
       child: Column(
@@ -209,7 +212,7 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, size: 15, color: AppColors.danger),
+          Icon(Icons.error_outline, size: 15, color: AppColors.danger),
           const SizedBox(width: 8),
           Expanded(
             child: Text(msg,
@@ -243,9 +246,10 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onTap != null;
-    // Monochrome CTA: cream fill + dark ink text, to match the app's restrained
-    // warm-grey palette (clay is reserved for sparse accents, not a big fill).
-    const fg = AppColors.ink;
+    // Monochrome CTA: a high-contrast neutral fill + opposite-ink text, to match
+    // the app's restrained warm palette (clay is reserved for sparse accents,
+    // not a big fill). Dark theme: cream fill / dark text; light theme inverts.
+    final fg = AppColors.current.primaryButtonText;
     return MouseRegion(
       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: (_) => setState(() => _hover = true),
@@ -256,8 +260,10 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
           duration: const Duration(milliseconds: 130),
           decoration: BoxDecoration(
             color: enabled
-                ? (_hover ? const Color(0xFFFFFFFF) : AppColors.textPrimary)
-                : AppColors.textPrimary.withValues(alpha: 0.3),
+                ? (_hover
+                    ? AppColors.current.primaryButtonFillHover
+                    : AppColors.current.primaryButtonFill)
+                : AppColors.current.primaryButtonFill.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(AppDims.radiusSm),
           ),
           alignment: Alignment.center,
@@ -265,7 +271,7 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (widget.busy) ...[
-                const SizedBox(
+                SizedBox(
                   width: 14,
                   height: 14,
                   child: CircularProgressIndicator(strokeWidth: 2, color: fg),

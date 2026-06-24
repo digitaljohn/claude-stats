@@ -54,11 +54,50 @@ void main() {
     expect(AppDims.titleBarHeight, 36);
   });
 
-  test('buildClaudeTheme produces a dark theme with accent primary', () {
+  test('buildClaudeTheme defaults to a dark theme with accent primary', () {
     final theme = buildClaudeTheme();
-    expect(theme.scaffoldBackgroundColor, AppColors.ink);
+    expect(theme.scaffoldBackgroundColor, AppPalette.dark.ink);
     expect(theme.colorScheme.brightness, Brightness.dark);
-    expect(theme.colorScheme.primary, AppColors.accent);
+    expect(theme.colorScheme.primary, AppPalette.dark.accent);
     expect(theme.splashFactory, NoSplash.splashFactory);
+  });
+
+  test('buildClaudeTheme builds a light theme from the light palette', () {
+    final theme = buildClaudeTheme(AppPalette.light);
+    expect(theme.scaffoldBackgroundColor, AppPalette.light.ink);
+    expect(theme.canvasColor, AppPalette.light.ink);
+    expect(theme.colorScheme.brightness, Brightness.light);
+    expect(theme.colorScheme.primary, AppPalette.light.accent);
+    expect(theme.colorScheme.surface, AppPalette.light.surface);
+    expect(theme.splashFactory, NoSplash.splashFactory);
+  });
+
+  group('AppColors.current palette switching', () {
+    tearDown(() => AppColors.current = AppPalette.dark);
+
+    test('AppColors tokens follow the active palette', () {
+      AppColors.current = AppPalette.dark;
+      expect(AppColors.ink, AppPalette.dark.ink);
+      expect(AppColors.textPrimary, AppPalette.dark.textPrimary);
+      expect(AppColors.accentHover, AppPalette.dark.accentHover);
+
+      AppColors.current = AppPalette.light;
+      expect(AppColors.ink, AppPalette.light.ink);
+      expect(AppColors.textPrimary, AppPalette.light.textPrimary);
+      expect(AppColors.accent, AppPalette.light.accent);
+      expect(AppColors.accentHover, AppPalette.light.accentHover);
+    });
+
+    test('AppPalette.of maps the theme mode to a palette', () {
+      expect(AppPalette.of(AppThemeMode.dark), AppPalette.dark);
+      expect(AppPalette.of(AppThemeMode.light), AppPalette.light);
+    });
+
+    test('heat still ramps good → warn → danger in the light palette', () {
+      AppColors.current = AppPalette.light;
+      expect(AppColors.heat(0.1), AppPalette.light.good);
+      expect(AppColors.heat(0.8), AppPalette.light.warn);
+      expect(AppColors.heat(0.95), AppPalette.light.danger);
+    });
   });
 }

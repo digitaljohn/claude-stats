@@ -27,10 +27,11 @@ class _GridPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = AppColors.ink);
+    final palette = AppColors.current;
+    canvas.drawRect(Offset.zero & size, Paint()..color = palette.ink);
 
     final line = Paint()
-      ..color = const Color(0x07FAF9F5) // warm cream @ ~3%
+      ..color = palette.gridSection // faint hairline grid
       ..strokeWidth = 1;
     for (double x = 0; x <= size.width; x += cell) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
@@ -48,7 +49,7 @@ class _GridPainter extends CustomPainter {
       Offset.zero & size,
       Paint()
         ..shader = RadialGradient(
-          colors: const [Color(0x12FAF9F5), Color(0x00000000)], // faint neutral lift
+          colors: [palette.topGlow, const Color(0x00000000)], // faint lift
         ).createShader(glowRect),
     );
 
@@ -56,10 +57,10 @@ class _GridPainter extends CustomPainter {
     canvas.drawRect(
       Offset.zero & size,
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.center,
           end: Alignment.bottomCenter,
-          colors: [Color(0x00000000), Color(0x66161514)],
+          colors: [const Color(0x00000000), palette.bottomVignette],
         ).createShader(Offset.zero & size),
     );
   }

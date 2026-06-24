@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../theme/claude_theme.dart';
+
 /// User-tunable preferences, persisted as JSON.
 class Settings {
   const Settings({
@@ -11,6 +13,7 @@ class Settings {
     this.showResetDate = false,
     this.notificationsEnabled = true,
     this.mini = false,
+    this.themeMode = AppThemeMode.dark,
   });
 
   final double warnThreshold; // 0..1
@@ -21,6 +24,7 @@ class Settings {
   final bool showResetDate;
   final bool notificationsEnabled;
   final bool mini; // compact floating-widget window mode
+  final AppThemeMode themeMode; // dark (default) or light
 
   Settings copyWith({
     double? warnThreshold,
@@ -31,6 +35,7 @@ class Settings {
     bool? showResetDate,
     bool? notificationsEnabled,
     bool? mini,
+    AppThemeMode? themeMode,
   }) =>
       Settings(
         warnThreshold: warnThreshold ?? this.warnThreshold,
@@ -41,6 +46,7 @@ class Settings {
         showResetDate: showResetDate ?? this.showResetDate,
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
         mini: mini ?? this.mini,
+        themeMode: themeMode ?? this.themeMode,
       );
 
   Map<String, dynamic> toJson() => {
@@ -52,6 +58,7 @@ class Settings {
         'resetDate': showResetDate,
         'notify': notificationsEnabled,
         'mini': mini,
+        'theme': themeMode.name, // 'dark' | 'light'
       };
 
   factory Settings.fromJson(Map<String, dynamic> j) => Settings(
@@ -63,6 +70,8 @@ class Settings {
         showResetDate: j['resetDate'] as bool? ?? false,
         notificationsEnabled: j['notify'] as bool? ?? true,
         mini: j['mini'] as bool? ?? false,
+        // Backwards-compatible: existing files have no 'theme' key → dark.
+        themeMode: j['theme'] == 'light' ? AppThemeMode.light : AppThemeMode.dark,
       );
 
   String encode() => jsonEncode(toJson());

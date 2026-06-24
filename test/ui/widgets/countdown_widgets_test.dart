@@ -45,7 +45,7 @@ void main() {
   group('RingCountdown widget', () {
     testWidgets('renders an em dash when there is no reset time', (tester) async {
       await tester.pumpWidget(wrap(
-        const RingCountdown(resetsAt: null, color: AppColors.danger, size: 96),
+        RingCountdown(resetsAt: null, color: AppColors.danger, size: 96),
         size: const Size(96, 96),
       ));
       expect(find.text('—'), findsOneWidget);

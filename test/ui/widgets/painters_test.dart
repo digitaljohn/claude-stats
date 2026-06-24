@@ -15,10 +15,10 @@ void main() {
 
   group('AppCard / SectionLabel', () {
     testWidgets('render with default and custom padding', (tester) async {
-      await tester.pumpWidget(wrap(const Column(children: [
-        AppCard(child: Text('a')),
-        AppCard(padding: EdgeInsets.all(4), child: Text('b')),
-        SectionLabel('hello'),
+      await tester.pumpWidget(wrap(Column(children: [
+        const AppCard(child: Text('a')),
+        const AppCard(padding: EdgeInsets.all(4), child: Text('b')),
+        const SectionLabel('hello'),
         SectionLabel('coloured', color: AppColors.warn),
       ])));
       expect(find.byType(AppCard), findsNWidgets(2));
@@ -40,13 +40,14 @@ void main() {
     testWidgets('renders with a centre child and repaints on value change',
         (tester) async {
       await tester.pumpWidget(wrap(
-        const UsageRing(value: 0.3, color: AppColors.good, center: Text('30%')),
+        UsageRing(value: 0.3, color: AppColors.good, center: const Text('30%')),
         size: const Size(200, 200),
       ));
       expect(find.text('30%'), findsOneWidget);
       // New value -> shouldRepaint true.
       await tester.pumpWidget(wrap(
-        const UsageRing(value: 0.95, color: AppColors.danger, center: Text('95%')),
+        UsageRing(
+            value: 0.95, color: AppColors.danger, center: const Text('95%')),
         size: const Size(200, 200),
       ));
       await tester.pump();
@@ -56,7 +57,7 @@ void main() {
     testWidgets('renders without a centre child and clamps out-of-range values',
         (tester) async {
       await tester.pumpWidget(wrap(
-        const UsageRing(value: 1.5, color: AppColors.good),
+        UsageRing(value: 1.5, color: AppColors.good),
         size: const Size(120, 120),
       ));
       expect(find.byType(UsageRing), findsOneWidget);
@@ -65,7 +66,7 @@ void main() {
 
   group('HeatBar', () {
     testWidgets('renders with and without threshold ticks', (tester) async {
-      await tester.pumpWidget(wrap(const Column(children: [
+      await tester.pumpWidget(wrap(Column(children: [
         HeatBar(value: 0.4, color: AppColors.good),
         HeatBar(value: 1.2, color: AppColors.danger, showTicks: false, height: 5),
       ])));

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:claude_stats/state/app_controller.dart';
+import 'package:claude_stats/theme/claude_theme.dart';
 import 'package:claude_stats/ui/settings_panel.dart';
 
 import '../helpers/fakes.dart';
@@ -10,6 +11,7 @@ import '../helpers/test_harness.dart';
 
 void main() {
   setUp(installPluginFakes);
+  tearDown(() => AppColors.current = AppPalette.dark);
 
   testWidgets('demo account: renders, drags sliders, toggles, segments, exits',
       (tester) async {
@@ -77,6 +79,30 @@ void main() {
     await tester.tap(find.byIcon(Icons.close));
     await tester.pump();
     expect(closed, true);
+  });
+
+  testWidgets('the appearance control switches between Dark and Light',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(mode: AppMode.demo, store: FakeStore());
+    addTearDown(c.dispose);
+
+    await tester.pumpWidget(wrap(
+      SettingsPanel(controller: c, onClose: () {}),
+      size: const Size(420, 1500),
+    ));
+
+    expect(c.settings.themeMode, AppThemeMode.dark);
+
+    await tester.tap(find.text('Light'));
+    await tester.pump();
+    expect(c.settings.themeMode, AppThemeMode.light);
+    expect(AppColors.current, AppPalette.light);
+
+    await tester.tap(find.text('Dark'));
+    await tester.pump();
+    expect(c.settings.themeMode, AppThemeMode.dark);
+    expect(AppColors.current, AppPalette.dark);
   });
 
   testWidgets('hovering the danger button changes its background', (tester) async {

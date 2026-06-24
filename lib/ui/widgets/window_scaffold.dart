@@ -85,7 +85,7 @@ class _TitleBar extends StatelessWidget {
         decoration: BoxDecoration(
           color: color ?? Colors.transparent,
           border: showBorder
-              ? const Border(bottom: BorderSide(color: AppColors.border))
+              ? Border(bottom: BorderSide(color: AppColors.border))
               : null,
         ),
         alignment: Alignment.topCenter,
