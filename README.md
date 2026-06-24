@@ -59,6 +59,11 @@ people who type `flutter run` for fun.
   amber → red exactly where you breached a threshold.
 - **Auto-refresh** every 1 / 5 / 15 / 30 min, with **desktop notifications**
   when you cross your warn/danger thresholds.
+- **User-defined alerts.** Tune your own warn/danger levels, and switch on
+  **per-model alerts** with their own threshold so a single model (Opus, say)
+  pinning toward its weekly cap pings you — even while your overall usage looks
+  calm. Each alert fires once per breach and re-arms after it cools off, so you
+  get a heads-up, not a stream of nags.
 - **Update checks** — compares your version against the latest GitHub release
   and offers a one-click download when a newer one ships.
 - **Integrated macOS window chrome.** Hidden native title bar, traffic-light

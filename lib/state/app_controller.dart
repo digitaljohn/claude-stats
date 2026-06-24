@@ -52,7 +52,16 @@ class AppController extends ChangeNotifier {
   String? _sessionKey;
   String? _orgId;
   Timer? _timer;
-  final Set<String> _dangerNotified = {};
+
+  /// Window keys we've already fired an alert for, so a sustained breach
+  /// notifies once rather than on every refresh. Entries are cleared when a
+  /// window cools back below its re-arm level (see [_evaluateAlert]).
+  final Set<String> _alerted = {};
+
+  /// How far a per-model window must drop below its alert threshold before it
+  /// re-arms — matching the ~15-point gap between the default warn (0.75) and
+  /// danger (0.90) levels, so models don't flap right at the boundary.
+  static const double _modelRearmMargin = 0.15;
 
   bool get isDemo => mode == AppMode.demo;
 
@@ -136,7 +145,7 @@ class AppController extends ChangeNotifier {
     usage = null;
     error = null;
     signInError = null;
-    _dangerNotified.clear();
+    _alerted.clear();
     await _store.clearCredentials();
     mode = AppMode.signedOut;
     notifyListeners();
@@ -262,15 +271,48 @@ class AppController extends ChangeNotifier {
 
   void _maybeNotify(UsageSnapshot snap) {
     if (!settings.notificationsEnabled) return;
+
+    // General limits: fire at the danger threshold, re-arm once back under warn.
     for (final w in [snap.session, snap.weekly]) {
-      final armed = !_dangerNotified.contains(w.key);
-      if (w.utilization >= settings.dangerThreshold && armed) {
-        _dangerNotified.add(w.key);
-        _notify('${w.label} limit almost reached',
-            '${w.percent}% used — requests may start failing soon.');
-      } else if (w.utilization < settings.warnThreshold) {
-        _dangerNotified.remove(w.key); // re-arm once it cools off
+      _evaluateAlert(
+        w,
+        fireAt: settings.dangerThreshold,
+        rearmAt: settings.warnThreshold,
+        title: '${w.label} limit almost reached',
+        body: '${w.percent}% used — requests may start failing soon.',
+      );
+    }
+
+    // Per-model limits: opt-in, one user-defined threshold across every model.
+    if (settings.modelAlertsEnabled) {
+      for (final w in snap.models) {
+        _evaluateAlert(
+          w,
+          fireAt: settings.modelAlertThreshold,
+          rearmAt: settings.modelAlertThreshold - _modelRearmMargin,
+          title: '${w.label} usage high',
+          body: '${w.percent}% of your weekly ${w.label} limit used.',
+        );
       }
+    }
+  }
+
+  /// Fires a single notification the first time [w] crosses [fireAt], then stays
+  /// quiet until it drops back below [rearmAt] (hysteresis), at which point it
+  /// re-arms for the next breach.
+  void _evaluateAlert(
+    UsageWindow w, {
+    required double fireAt,
+    required double rearmAt,
+    required String title,
+    required String body,
+  }) {
+    final armed = !_alerted.contains(w.key);
+    if (w.utilization >= fireAt && armed) {
+      _alerted.add(w.key);
+      _notify(title, body);
+    } else if (w.utilization < rearmAt) {
+      _alerted.remove(w.key); // cooled off → re-arm
     }
   }
 

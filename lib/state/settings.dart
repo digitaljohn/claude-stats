@@ -12,6 +12,8 @@ class Settings {
     this.alwaysOnTop = false,
     this.showResetDate = false,
     this.notificationsEnabled = true,
+    this.modelAlertsEnabled = true,
+    this.modelAlertThreshold = 0.90,
     this.mini = false,
     this.themeMode = AppThemeMode.dark,
   });
@@ -23,6 +25,8 @@ class Settings {
   final bool alwaysOnTop;
   final bool showResetDate;
   final bool notificationsEnabled;
+  final bool modelAlertsEnabled; // notify on individual per-model limits
+  final double modelAlertThreshold; // 0..1; per-model notify threshold
   final bool mini; // compact floating-widget window mode
   final AppThemeMode themeMode; // dark (default) or light
 
@@ -34,6 +38,8 @@ class Settings {
     bool? alwaysOnTop,
     bool? showResetDate,
     bool? notificationsEnabled,
+    bool? modelAlertsEnabled,
+    double? modelAlertThreshold,
     bool? mini,
     AppThemeMode? themeMode,
   }) =>
@@ -45,6 +51,8 @@ class Settings {
         alwaysOnTop: alwaysOnTop ?? this.alwaysOnTop,
         showResetDate: showResetDate ?? this.showResetDate,
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+        modelAlertsEnabled: modelAlertsEnabled ?? this.modelAlertsEnabled,
+        modelAlertThreshold: modelAlertThreshold ?? this.modelAlertThreshold,
         mini: mini ?? this.mini,
         themeMode: themeMode ?? this.themeMode,
       );
@@ -57,6 +65,8 @@ class Settings {
         'onTop': alwaysOnTop,
         'resetDate': showResetDate,
         'notify': notificationsEnabled,
+        'modelAlerts': modelAlertsEnabled,
+        'modelThreshold': modelAlertThreshold,
         'mini': mini,
         'theme': themeMode.name, // 'dark' | 'light'
       };
@@ -69,6 +79,9 @@ class Settings {
         alwaysOnTop: j['onTop'] as bool? ?? false,
         showResetDate: j['resetDate'] as bool? ?? false,
         notificationsEnabled: j['notify'] as bool? ?? true,
+        // Backwards-compatible: pre-alerts files have no model keys → defaults.
+        modelAlertsEnabled: j['modelAlerts'] as bool? ?? true,
+        modelAlertThreshold: (j['modelThreshold'] as num?)?.toDouble() ?? 0.90,
         mini: j['mini'] as bool? ?? false,
         // Backwards-compatible: existing files have no 'theme' key → dark.
         themeMode: j['theme'] == 'light' ? AppThemeMode.light : AppThemeMode.dark,

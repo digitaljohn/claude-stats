@@ -13,6 +13,8 @@ void main() {
     expect(s.alwaysOnTop, false);
     expect(s.showResetDate, false);
     expect(s.notificationsEnabled, true);
+    expect(s.modelAlertsEnabled, true);
+    expect(s.modelAlertThreshold, 0.90);
     expect(s.mini, false);
     expect(s.themeMode, AppThemeMode.dark); // dark by default
   });
@@ -27,6 +29,8 @@ void main() {
       alwaysOnTop: true,
       showResetDate: true,
       notificationsEnabled: false,
+      modelAlertsEnabled: false,
+      modelAlertThreshold: 0.7,
       mini: true,
       themeMode: AppThemeMode.light,
     );
@@ -37,6 +41,8 @@ void main() {
     expect(n.alwaysOnTop, true);
     expect(n.showResetDate, true);
     expect(n.notificationsEnabled, false);
+    expect(n.modelAlertsEnabled, false);
+    expect(n.modelAlertThreshold, 0.7);
     expect(n.mini, true);
     expect(n.themeMode, AppThemeMode.light);
   });
@@ -50,6 +56,8 @@ void main() {
       alwaysOnTop: true,
       showResetDate: true,
       notificationsEnabled: false,
+      modelAlertsEnabled: false,
+      modelAlertThreshold: 0.65,
       mini: true,
       themeMode: AppThemeMode.light,
     );
@@ -66,6 +74,8 @@ void main() {
       alwaysOnTop: true,
       showResetDate: true,
       notificationsEnabled: false,
+      modelAlertsEnabled: false,
+      modelAlertThreshold: 0.65,
       mini: true,
       themeMode: AppThemeMode.light,
     );
@@ -77,6 +87,8 @@ void main() {
     expect(decoded.alwaysOnTop, true);
     expect(decoded.showResetDate, true);
     expect(decoded.notificationsEnabled, false);
+    expect(decoded.modelAlertsEnabled, false);
+    expect(decoded.modelAlertThreshold, 0.65);
     expect(decoded.mini, true);
     expect(decoded.themeMode, AppThemeMode.light);
   });
@@ -90,13 +102,15 @@ void main() {
     expect(s.alwaysOnTop, false);
     expect(s.showResetDate, false);
     expect(s.notificationsEnabled, true);
+    expect(s.modelAlertsEnabled, true);
+    expect(s.modelAlertThreshold, 0.90);
     expect(s.mini, false);
     expect(s.themeMode, AppThemeMode.dark);
   });
 
   test('legacy settings without a theme key decode as dark (backwards-compat)',
       () {
-    // An existing on-disk settings blob from before light mode existed.
+    // An existing on-disk settings blob from before light mode / model alerts.
     const legacy =
         '{"warn":0.8,"danger":0.95,"use24h":true,"refresh":60,"onTop":false,'
         '"resetDate":false,"notify":true,"mini":false}';
@@ -104,6 +118,9 @@ void main() {
     expect(decoded.themeMode, AppThemeMode.dark);
     expect(decoded.warnThreshold, 0.8);
     expect(decoded.use24h, true);
+    // Pre-alerts blobs have no model keys → sensible defaults.
+    expect(decoded.modelAlertsEnabled, true);
+    expect(decoded.modelAlertThreshold, 0.90);
   });
 
   test('an unknown theme value falls back to dark', () {
