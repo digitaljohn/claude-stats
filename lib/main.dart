@@ -7,6 +7,7 @@ import 'package:local_notifier/local_notifier.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'platform/platform_support.dart';
 import 'state/app_controller.dart';
 import 'theme/claude_theme.dart';
 import 'ui/dashboard_screen.dart';
@@ -37,12 +38,17 @@ Future<void> main() async {
     title: 'claude·stats',
   );
   await windowManager.waitUntilReadyToShow(options, () async {
-    // Integrated chrome: hide the native title bar but keep the traffic-light
-    // buttons floating over a full-size content view.
-    await windowManager.setTitleBarStyle(
-      TitleBarStyle.hidden,
-      windowButtonVisibility: true,
-    );
+    // Integrated chrome on macOS: hide the native title bar but keep the
+    // traffic-light buttons floating over a full-size content view. Windows and
+    // Linux keep their native title bar (and its window controls), so we leave
+    // the frame alone there — WindowScaffold drops the traffic-light clearance
+    // to match.
+    if (PlatformSupport.current.usesTrafficLights) {
+      await windowManager.setTitleBarStyle(
+        TitleBarStyle.hidden,
+        windowButtonVisibility: true,
+      );
+    }
     await windowManager.show();
     await windowManager.focus();
   });

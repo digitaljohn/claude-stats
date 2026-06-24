@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../platform/platform_support.dart';
 import '../state/app_controller.dart';
 
 /// The menu-bar title for the given session percentage — shown next to the
@@ -22,7 +23,10 @@ class TrayController with TrayListener {
 
   Future<void> init() async {
     trayManager.addListener(this);
-    await trayManager.setIcon('assets/tray/icon.png', isTemplate: true);
+    // `isTemplate` is a macOS-only notion (the menu bar auto-tints monochrome
+    // template icons); Windows/Linux render the PNG as-is.
+    await trayManager.setIcon('assets/tray/icon.png',
+        isTemplate: PlatformSupport.current.trayIconIsTemplate);
     await _syncTitle();
     await trayManager.setContextMenu(Menu(items: [
       MenuItem(key: 'show', label: 'Show claude·stats'),
@@ -33,8 +37,17 @@ class TrayController with TrayListener {
     _controller.addListener(_syncTitle);
   }
 
-  Future<void> _syncTitle() =>
-      trayManager.setTitle(trayTitle(_controller.usage?.session.percent));
+  /// Mirrors the live session % into the tray. macOS shows it as the status-item
+  /// title beside the icon; Windows/Linux trays have no title, so it rides in
+  /// the tooltip instead.
+  Future<void> _syncTitle() async {
+    final title = trayTitle(_controller.usage?.session.percent);
+    if (PlatformSupport.current.trayShowsTitle) {
+      await trayManager.setTitle(title);
+    } else {
+      await trayManager.setToolTip('claude·stats — $title');
+    }
+  }
 
   @override
   void onTrayIconMouseDown() {

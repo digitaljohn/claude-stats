@@ -59,3 +59,39 @@ jobs:
           name: coverage-lcov
           path: coverage/lcov.info
           if-no-files-found: ignore
+
+  # Compile-check the newly-added desktop targets. The analyze + coverage gate
+  # lives on macOS (above); these jobs just prove Windows and Linux still build
+  # — the embedded-webview / tray / window-chrome differences are routed through
+  # lib/platform/platform_support.dart, and flutter_inappwebview has no Linux
+  # backend (the app falls back to the browser flow there).
+  build-desktop:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux desktop build deps
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libayatana-appindicator3-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.6
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter build ${{ matrix.platform }} --release

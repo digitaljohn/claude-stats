@@ -1,5 +1,5 @@
 name: claude_stats
-description: "A minimal, Claude-themed macOS widget that tracks your Claude.ai usage limits."
+description: "A minimal, Claude-themed desktop widget (macOS · Windows · Linux) that tracks your Claude.ai usage limits."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -33,14 +33,17 @@ dependencies:
   # Best-effort desktop notifications at usage thresholds.
   local_notifier: ^0.1.6
 
-  # Embedded claude.ai login (captures the sessionKey cookie automatically).
+  # Embedded claude.ai login (captures the sessionKey cookie automatically) on
+  # macOS (WKWebView) + Windows (WebView2). Linux has no webview backend, so
+  # there the app falls back to the open-browser + paste-the-key flow.
   flutter_inappwebview: ^6.1.5
 
   # Opens the GitHub release page in the default browser (update check).
   url_launcher: ^6.3.0
 
-  # macOS menu-bar (NSStatusItem) residency: live usage % title + custom icon
-  # + context menu, with click-to-toggle the window.
+  # Tray residency: live usage % + custom icon + context menu, with
+  # click-to-toggle the window. macOS shows the % as the NSStatusItem title;
+  # Windows/Linux fold it into the tray tooltip.
   tray_manager: ^0.5.3
 
 dev_dependencies:

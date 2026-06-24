@@ -7,9 +7,10 @@ import '../models/usage.dart';
 import '../state/settings.dart';
 
 /// App-private persistence (session key, resolved org, settings, usage
-/// history) backed by a single JSON file inside the macOS sandbox container —
-/// readable only by this app / the signed-in user. The session key is
-/// base64-wrapped so it isn't sitting as grep-able plaintext; this is not
+/// history) backed by a single JSON file inside the per-user application-support
+/// directory (the sandbox container on macOS, %APPDATA%/~/.local on
+/// Windows/Linux) — readable only by this app / the signed-in user. The session
+/// key is base64-wrapped so it isn't sitting as grep-able plaintext; this is not
 /// Keychain-grade, but matches the reference widget's plain-storage fallback.
 class SessionStore {
   File? _file;
