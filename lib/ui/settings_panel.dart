@@ -87,6 +87,26 @@ class SettingsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
+          // Appearance
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionLabel('Appearance'),
+                const SizedBox(height: 12),
+                _Segmented<AppThemeMode>(
+                  value: s.themeMode,
+                  options: const {
+                    'Dark': AppThemeMode.dark,
+                    'Light': AppThemeMode.light,
+                  },
+                  onChanged: (v) => _set(s.copyWith(themeMode: v)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // Toggles
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -177,7 +197,7 @@ class _CloseButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.border),
           ),
-          child: const Icon(Icons.close, size: 14, color: AppColors.textSecondary),
+          child: Icon(Icons.close, size: 14, color: AppColors.textSecondary),
         ),
       ),
     );
@@ -249,7 +269,7 @@ class _ToggleRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: last
             ? null
-            : const Border(bottom: BorderSide(color: AppColors.border)),
+            : Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [

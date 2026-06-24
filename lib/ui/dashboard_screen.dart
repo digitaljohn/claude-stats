@@ -323,7 +323,7 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 22,
         height: 22,
@@ -386,7 +386,7 @@ class _UpdateBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.arrow_circle_up_outlined,
+          Icon(Icons.arrow_circle_up_outlined,
               size: 16, color: AppColors.accent),
           const SizedBox(width: 8),
           Expanded(

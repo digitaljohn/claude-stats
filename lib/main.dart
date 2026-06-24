@@ -28,12 +28,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await windowManager.ensureInitialized();
-  const options = WindowOptions(
-    size: Size(420, 800),
-    minimumSize: Size(380, 560),
-    maximumSize: Size(560, 1200),
+  final options = WindowOptions(
+    size: const Size(420, 800),
+    minimumSize: const Size(380, 560),
+    maximumSize: const Size(560, 1200),
     center: true,
-    backgroundColor: AppColors.ink,
+    backgroundColor: AppColors.ink, // first-paint flash; dark default is fine
     title: 'claude·stats',
   );
   await windowManager.waitUntilReadyToShow(options, () async {
@@ -121,38 +121,45 @@ class _ClaudeStatsAppState extends State<ClaudeStatsApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'claude·stats',
-      debugShowCheckedModeBanner: false,
-      theme: buildClaudeTheme(),
-      home: RepaintBoundary(
-        key: _captureKey,
-        child: ListenableBuilder(
-          listenable: widget.controller,
-          builder: (context, _) {
-            switch (widget.controller.mode) {
-              case AppMode.loading:
-                return const WindowScaffold(
-                  child: Center(
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.accent),
-                    ),
-                  ),
-                );
-              case AppMode.signedOut:
-                return SignInScreen(controller: widget.controller);
-              case AppMode.demo:
-              case AppMode.live:
-                return widget.controller.settings.mini
-                    ? MiniScreen(controller: widget.controller)
-                    : DashboardScreen(controller: widget.controller);
-            }
-          },
-        ),
-      ),
+    // Listen above MaterialApp so a theme change (which mutates settings +
+    // AppColors.current) rebuilds MaterialApp.theme — switching live, no restart.
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'claude·stats',
+          debugShowCheckedModeBanner: false,
+          theme: buildClaudeTheme(
+              AppPalette.of(widget.controller.settings.themeMode)),
+          home: RepaintBoundary(
+            key: _captureKey,
+            child: Builder(
+              builder: (context) {
+                switch (widget.controller.mode) {
+                  case AppMode.loading:
+                    return WindowScaffold(
+                      child: Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.accent),
+                        ),
+                      ),
+                    );
+                  case AppMode.signedOut:
+                    return SignInScreen(controller: widget.controller);
+                  case AppMode.demo:
+                  case AppMode.live:
+                    return widget.controller.settings.mini
+                        ? MiniScreen(controller: widget.controller)
+                        : DashboardScreen(controller: widget.controller);
+                }
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

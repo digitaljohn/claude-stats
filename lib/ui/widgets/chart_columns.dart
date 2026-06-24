@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../theme/claude_theme.dart';
+
 /// Time-binned column chart, Claude-styled.
 ///
 /// [bins] is a fixed-length, time-accurate series (see `binnedSeries`): one
@@ -69,15 +71,16 @@ class _ColumnsPainter extends CustomPainter {
   final double warnAt;
   final double dangerAt;
 
-  // Palette — Claude state ramp (cream → amber → red).
-  static const Color _normal = Color(0xFFF5F4EE);
-  static const Color _warn = Color(0xFFE8A13C);
-  static const Color _danger = Color(0xFFE5564B);
-  static const Color _grid = Color(0x12FAF9F5); // warm hairline grid
-  static const Color _day = Color(0x0AFAF9F5); // even fainter day separators
-  // Faint dashed threshold guides (amber/red at ~28% alpha, pre-baked).
-  static const Color _warnGuide = Color(0x47E8A13C);
-  static const Color _dangerGuide = Color(0x47E5564B);
+  // Palette — Claude state ramp, resolved from the active theme at paint time.
+  final AppPalette _p = AppColors.current;
+  Color get _normal => _p.good;
+  Color get _warn => _p.warn;
+  Color get _danger => _p.danger;
+  Color get _grid => _p.gridLine; // hairline grid
+  Color get _day => _p.gridSection; // even fainter day separators
+  // Faint dashed threshold guides (amber/red at ~28% alpha).
+  Color get _warnGuide => _p.warn.withValues(alpha: 0.28);
+  Color get _dangerGuide => _p.danger.withValues(alpha: 0.28);
 
   double _clamp01(double v) {
     if (v.isNaN) return 0.0;

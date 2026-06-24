@@ -8,6 +8,7 @@ import 'package:claude_stats/data/update_checker.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/state/settings.dart';
+import 'package:claude_stats/theme/claude_theme.dart';
 
 import '../helpers/fakes.dart';
 import '../helpers/test_harness.dart';
@@ -15,7 +16,10 @@ import '../helpers/test_harness.dart';
 void main() {
   late Directory tmp;
   setUp(() => tmp = installPluginFakes());
-  tearDown(() => removePluginFakes(tmp));
+  tearDown(() {
+    AppColors.current = AppPalette.dark; // don't leak theme state across tests
+    removePluginFakes(tmp);
+  });
 
   AppController make(FakeStore store, FakeApi api) {
     final c = AppController(store: store, api: api);
@@ -254,6 +258,30 @@ void main() {
       expect(store.settingsWrites, writesBefore + 1);
       expect(c.settings.refreshSeconds, 60);
       expect(c.settings.alwaysOnTop, true);
+    });
+
+    test('bootstrap applies the persisted theme to AppColors.current', () async {
+      final store = FakeStore(
+          settings: const Settings(themeMode: AppThemeMode.light));
+      final c = make(store, FakeApi());
+      await c.bootstrap();
+      expect(c.settings.themeMode, AppThemeMode.light);
+      expect(AppColors.current, AppPalette.light);
+    });
+
+    test('updateSettings switches the live palette without a restart', () async {
+      final store = FakeStore();
+      final c = make(store, FakeApi());
+      await c.bootstrap();
+      expect(AppColors.current, AppPalette.dark);
+
+      await c.updateSettings(
+          c.settings.copyWith(themeMode: AppThemeMode.light));
+      expect(AppColors.current, AppPalette.light);
+
+      await c.updateSettings(
+          c.settings.copyWith(themeMode: AppThemeMode.dark));
+      expect(AppColors.current, AppPalette.dark);
     });
 
     test('setMini is a no-op when unchanged, toggles otherwise', () async {
