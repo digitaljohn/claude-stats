@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:claude_stats/platform/platform_support.dart';
 import 'package:claude_stats/ui/widgets/window_scaffold.dart';
 
 import '../../helpers/test_harness.dart';
@@ -30,6 +31,18 @@ void main() {
       child: Text('x'),
     )));
     expect(find.byType(Wordmark), findsNothing);
+  });
+
+  testWidgets('drops the traffic-light clearance off macOS', (tester) async {
+    // Windows/Linux keep their native title bar, so the in-content bar uses a
+    // small leading inset instead of the wide macOS traffic-light clearance.
+    final original = PlatformSupport.current;
+    PlatformSupport.current = const PlatformSupport(HostOs.windows);
+    addTearDown(() => PlatformSupport.current = original);
+
+    await tester.pumpWidget(wrap(const WindowScaffold(child: Text('body'))));
+    expect(find.text('body'), findsOneWidget);
+    expect(find.byType(Wordmark), findsOneWidget);
   });
 
   group('TitleBarButton', () {

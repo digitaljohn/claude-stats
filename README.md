@@ -6,14 +6,14 @@
 
 > A tiny, Claude-themed desktop widget that tells you how much Claude you have left to Claude.
 
-[![Platform](https://img.shields.io/badge/platform-macOS-1F1E1D?logo=apple)](https://github.com/digitaljohn/claude-stats)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-1F1E1D)](https://github.com/digitaljohn/claude-stats)
 [![Flutter](https://img.shields.io/badge/Flutter-3.35-1F1E1D?logo=flutter)](https://flutter.dev)
-[![Tests](https://img.shields.io/badge/tests-165%20passing-D97757)](#testing)
+[![Tests](https://img.shields.io/badge/tests-191%20passing-D97757)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-D97757)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-A6A399)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/digitaljohn)
 
-A minimal macOS desktop widget that watches your **Claude.ai usage limits** in
+A minimal desktop widget — **macOS, Windows, and Linux** — that watches your **Claude.ai usage limits** in
 real time — session, weekly, per-model — so you find out you're rate-limited
 *before* you're mid-sentence on the thing that was definitely going to work this
 time.
@@ -61,8 +61,9 @@ people who type `flutter run` for fun.
   when you cross your warn/danger thresholds.
 - **Update checks** — compares your version against the latest GitHub release
   and offers a one-click download when a newer one ships.
-- **Integrated macOS window chrome.** Hidden native title bar, traffic-light
-  buttons floating over a full-size content view, drag-to-move anywhere,
+- **Integrated window chrome.** On macOS, a hidden native title bar with the
+  traffic-light buttons floating over a full-size content view; on Windows and
+  Linux, the native title bar and its window controls. Drag-to-move anywhere,
   optional always-on-top. It looks like it belongs.
 - **Mini mode** for the corner of your screen, **compact mode**, 12/24-hour
   time, and a **demo mode** so you can play with the whole UI without handing
@@ -74,17 +75,24 @@ Click **Log in with Claude** → sign in in the embedded webview → done. Under
 hood the app polls the cookie store and, when `sessionKey` shows up, reads your
 usage from claude.ai's private web API:
 
+> The embedded webview is available on **macOS** (WKWebView) and **Windows**
+> (WebView2). **Linux** has no webview backend, so there the button becomes
+> **Open claude.ai** — you sign in in your normal browser and paste the
+> `sessionKey` cookie into the field on the sign-in screen. Same capture,
+> surfaced differently. See [docs/platform-support.md](docs/platform-support.md).
+
 ```
 GET https://claude.ai/api/organizations/{org}/usage
 GET https://claude.ai/api/organizations/{org}/overage_spend_limit
 GET https://claude.ai/api/organizations/{org}/prepaid/credits
 ```
 
-Your session key is stored in an **app-private JSON file inside the macOS
-sandbox container** (`claude_stats.json`), base64-wrapped so it isn't grep-able
-plaintext. To be crystal clear: that's _obfuscation, not encryption_, and it's
-**not** the Keychain. It never leaves your machine except to talk to claude.ai —
-the same place your browser already sends it.
+Your session key is stored in an **app-private JSON file in the per-user
+application-support directory** (`claude_stats.json` — the sandbox container on
+macOS, `%APPDATA%` / `~/.local/share` on Windows/Linux), base64-wrapped so it
+isn't grep-able plaintext. To be crystal clear: that's _obfuscation, not
+encryption_, and it's **not** the Keychain. It never leaves your machine except
+to talk to claude.ai — the same place your browser already sends it.
 
 ## Install
 
@@ -106,6 +114,14 @@ flutter run -d macos     # run it…
 flutter build macos      # …or build a release .app
 ```
 
+**On Windows / Linux** — install the [Flutter SDK](https://flutter.dev) (3.35+)
+and that platform's desktop toolchain, then:
+
+```bash
+flutter build windows    # .exe + bundle  (needs Visual Studio "Desktop C++")
+flutter build linux      # bundle          (needs GTK/ninja dev packages)
+```
+
 Just want to admire the UI without a session key? Add `--dart-define=demo=true`.
 
 ## Tech stack
@@ -113,9 +129,9 @@ Just want to admire the UI without a session key? Add `--dart-define=demo=true`.
 | | |
 |---|---|
 | **Framework** | Flutter 3.35 / Dart 3.9 |
-| **Window chrome** | [`window_manager`](https://pub.dev/packages/window_manager) — frameless title bar + traffic lights |
-| **Menu bar** | [`tray_manager`](https://pub.dev/packages/tray_manager) — NSStatusItem icon + live % |
-| **Embedded login** | [`flutter_inappwebview`](https://pub.dev/packages/flutter_inappwebview) — WKWebView + cookie capture |
+| **Window chrome** | [`window_manager`](https://pub.dev/packages/window_manager) — hidden title bar + traffic lights (macOS), native chrome elsewhere |
+| **Tray / menu bar** | [`tray_manager`](https://pub.dev/packages/tray_manager) — icon + live % (NSStatusItem title on macOS, tooltip on Windows/Linux) |
+| **Embedded login** | [`flutter_inappwebview`](https://pub.dev/packages/flutter_inappwebview) — WKWebView / WebView2 + cookie capture (macOS · Windows); browser fallback on Linux |
 | **Browser launch** | [`url_launcher`](https://pub.dev/packages/url_launcher) — opens release / coffee links |
 | **Typography** | [`google_fonts`](https://pub.dev/packages/google_fonts) — Hanken Grotesk (UI) + JetBrains Mono (readouts) |
 | **Notifications** | [`local_notifier`](https://pub.dev/packages/local_notifier) |
@@ -130,6 +146,7 @@ runtime bloat.
 lib/
 ├─ data/        claude_api.dart · session_store.dart · update_checker.dart · demo_data.dart
 ├─ models/      usage.dart           (windows, snapshot, history points)
+├─ platform/    platform_support.dart (per-OS capability flags: webview, chrome, tray)
 ├─ state/       app_controller.dart  (fetch loop, notifications, modes) · settings.dart
 ├─ theme/       claude_theme.dart    (the warm Claude palette + type scale)
 ├─ ui/          dashboard · mini · sign_in · settings · login_webview · tray (menu bar)
@@ -139,7 +156,7 @@ lib/
 
 ## Testing
 
-165 tests, **100% line coverage** — including the painters, the timers, the
+191 tests, **100% line coverage** — including the painters, the timers, the
 fetch loop, and the bit of maths that decides whether your countdown ring is
 counting hours or panicking in seconds.
 

@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 
+import '../platform/platform_support.dart';
 import '../state/app_controller.dart';
 import '../theme/claude_theme.dart';
 import 'login_webview.dart';
 import 'widgets/grid_background.dart';
 import 'widgets/window_scaffold.dart';
 
+/// The claude.ai login page; opened in an external browser on hosts without an
+/// embedded webview (Linux), where the user copies the sessionKey cookie back.
+const _loginUrl = 'https://claude.ai/login';
+
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key, required this.controller});
+  SignInScreen({super.key, required this.controller, PlatformSupport? platform})
+      : platform = platform ?? PlatformSupport.current;
   final AppController controller;
+
+  /// Decides how sign-in is presented; defaults to the live host. Injectable so
+  /// tests can drive the embedded-webview and browser-fallback flows alike.
+  final PlatformSupport platform;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -17,7 +27,17 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final _field = TextEditingController();
   bool _obscure = true;
-  bool _showPaste = false;
+  late bool _showPaste;
+
+  bool get _embeddedLogin => widget.platform.hasEmbeddedWebview;
+
+  @override
+  void initState() {
+    super.initState();
+    // With no embedded webview (Linux) the pasted-key field *is* the sign-in
+    // path, so show it from the start rather than hiding it behind a toggle.
+    _showPaste = !_embeddedLogin;
+  }
 
   @override
   void dispose() {
@@ -42,6 +62,13 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
   // coverage:ignore-end
+
+  /// Browser fallback (no embedded webview): open claude.ai so the user can sign
+  /// in there, then paste the sessionKey into the field below.
+  Future<void> _openBrowser() async {
+    await widget.controller.openUrl(_loginUrl);
+    if (mounted) setState(() => _showPaste = true);
+  }
 
   Future<void> _connectPasted() async {
     FocusScope.of(context).unfocus();
@@ -92,9 +119,13 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Sign in with your Claude account. The session is captured for you '
-            'and stored privately on your Mac — never sent anywhere but '
-            'claude.ai.',
+            _embeddedLogin
+                ? 'Sign in with your Claude account. The session is captured for '
+                    'you and stored privately on your device — never sent '
+                    'anywhere but claude.ai.'
+                : 'Open claude.ai in your browser, sign in, then paste your '
+                    'sessionKey below. It is stored privately on your device — '
+                    'never sent anywhere but claude.ai.',
             style: AppText.body(AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
@@ -102,10 +133,14 @@ class _SignInScreenState extends State<SignInScreen> {
             width: double.infinity,
             height: 46,
             child: _PrimaryButton(
-              label: c.signingIn ? 'Verifying…' : 'Log in with Claude',
+              label: c.signingIn
+                  ? 'Verifying…'
+                  : (_embeddedLogin ? 'Log in with Claude' : 'Open claude.ai'),
               busy: c.signingIn,
-              icon: Icons.arrow_forward_rounded,
-              onTap: c.signingIn ? null : _login,
+              icon: _embeddedLogin
+                  ? Icons.arrow_forward_rounded
+                  : Icons.open_in_new_rounded,
+              onTap: c.signingIn ? null : (_embeddedLogin ? _login : _openBrowser),
             ),
           ),
           if (c.signInError != null) ...[
@@ -118,11 +153,15 @@ class _SignInScreenState extends State<SignInScreen> {
               _GhostButton(
                   label: 'Try demo data',
                   onTap: c.signingIn ? null : c.enterDemo),
-              const Spacer(),
-              _GhostButton(
-                label: _showPaste ? 'Hide' : 'Paste a key instead',
-                onTap: () => setState(() => _showPaste = !_showPaste),
-              ),
+              // The paste field is permanently visible on the browser-fallback
+              // path, so only the embedded-login flow needs a reveal toggle.
+              if (_embeddedLogin) ...[
+                const Spacer(),
+                _GhostButton(
+                  label: _showPaste ? 'Hide' : 'Paste a key instead',
+                  onTap: () => setState(() => _showPaste = !_showPaste),
+                ),
+              ],
             ],
           ),
           if (_showPaste) ...[
@@ -141,8 +180,8 @@ class _SignInScreenState extends State<SignInScreen> {
         _keyField(),
         const SizedBox(height: 8),
         Text(
-          'Advanced: claude.ai → DevTools → Application → Cookies → '
-          'copy the “sessionKey” value.',
+          '${_embeddedLogin ? 'Advanced: ' : ''}claude.ai → DevTools → '
+          'Application → Cookies → copy the “sessionKey” value.',
           style: AppText.label(AppColors.textFaint).copyWith(height: 1.35),
         ),
         const SizedBox(height: 12),

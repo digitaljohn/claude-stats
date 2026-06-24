@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:claude_stats/platform/platform_support.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/ui/sign_in_screen.dart';
 
@@ -93,6 +94,35 @@ void main() {
     expect(find.text('Verifying…'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsWidgets);
     expect(find.textContaining('Session rejected'), findsOneWidget);
+  });
+
+  testWidgets('browser-fallback sign-in when there is no embedded webview',
+      (tester) async {
+    final original = PlatformSupport.current;
+    PlatformSupport.current = const PlatformSupport(HostOs.linux);
+    addTearDown(() => PlatformSupport.current = original);
+
+    final opened = <Uri>[];
+    final c = readyController(
+      mode: AppMode.signedOut,
+      urlLauncher: (uri) async {
+        opened.add(uri);
+        return true;
+      },
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(SignInScreen(controller: c)));
+
+    // The embedded-login CTA is replaced by a browser launcher, and the paste
+    // field stands in for the cookie capture — shown up-front, no reveal toggle.
+    expect(find.text('Open claude.ai'), findsOneWidget);
+    expect(find.text('Log in with Claude'), findsNothing);
+    expect(find.text('Paste a key instead'), findsNothing);
+    expect(find.byType(TextField), findsOneWidget);
+
+    await tester.tap(find.text('Open claude.ai'));
+    await tester.pump();
+    expect(opened.single.toString(), 'https://claude.ai/login');
   });
 
   testWidgets('hover states on the primary and ghost buttons', (tester) async {

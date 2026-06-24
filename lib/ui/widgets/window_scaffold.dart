@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../platform/platform_support.dart';
 import '../../theme/claude_theme.dart';
 
 /// App shell with the integrated macOS title bar: a hidden native title bar
@@ -93,8 +94,11 @@ class _TitleBar extends StatelessWidget {
           height: _trafficLightBand,
           child: Row(
             children: [
-              // Clearance for the native traffic-light cluster (~70px wide).
-              const SizedBox(width: 80),
+              // Clearance for the macOS traffic-light cluster (~70px wide). On
+              // Windows/Linux the native title bar carries the window controls,
+              // so our content bar only needs a small leading inset.
+              SizedBox(
+                  width: PlatformSupport.current.usesTrafficLights ? 80 : 16),
               // Take the slack and scale the wordmark down if the bar gets tight
               // (narrow window / extra action buttons) so it never overflows.
               Expanded(
