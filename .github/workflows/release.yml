@@ -25,10 +25,17 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
 
+      # Strip the leading "v" so APP_VERSION is clean semver (v1.2.3 -> 1.2.3),
+      # matching kAppVersion's local-dev default and the version comparison in
+      # update_checker.dart.
+      - name: Derive app version from the release tag
+        run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
       # Ad-hoc signed (CODE_SIGN_IDENTITY = "-"); no Apple Developer account
       # needed, so the artifact is unsigned/un-notarized — see release notes.
+      # --dart-define bakes APP_VERSION into kAppVersion at compile time.
       - name: Build macOS (release)
-        run: flutter build macos --release
+        run: flutter build macos --release --dart-define=APP_VERSION="$APP_VERSION"
 
       - name: Package .app into a .dmg
         run: |
