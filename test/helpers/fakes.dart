@@ -1,28 +1,38 @@
 import 'package:claude_stats/data/claude_api.dart';
 import 'package:claude_stats/data/session_store.dart';
 import 'package:claude_stats/data/update_checker.dart';
+import 'package:claude_stats/models/account.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/state/settings.dart';
 
 /// In-memory [SessionStore]: all reads/writes resolve as microtasks (no file
-/// IO), which keeps it usable under `fakeAsync`.
+/// IO), which keeps it usable under `fakeAsync`. History is single-org here —
+/// [history] backs the active org; [legacyHistory] backs the pre-multi-account
+/// global file (so the migration path can be exercised).
 class FakeStore extends SessionStore {
   FakeStore({
     this.sessionKey,
     this.orgId,
     Settings? settings,
     List<HistoryPoint>? history,
+    List<HistoryPoint>? legacyHistory,
+    List<Account>? accounts,
   })  : settings = settings ?? const Settings(),
-        history = history ?? [];
+        history = history ?? [],
+        legacyHistory = legacyHistory ?? [],
+        accounts = accounts ?? [];
 
   String? sessionKey;
   String? orgId;
   Settings settings;
   List<HistoryPoint> history;
+  List<HistoryPoint> legacyHistory;
+  List<Account> accounts;
 
   int settingsWrites = 0;
   int historyWrites = 0;
+  bool legacyCleared = false;
 
   @override
   Future<String?> readSessionKey() async => sessionKey;
@@ -33,6 +43,10 @@ class FakeStore extends SessionStore {
   @override
   Future<void> writeOrgId(String value) async => orgId = value;
   @override
+  Future<List<Account>> readAccounts() async => accounts;
+  @override
+  Future<void> writeAccounts(List<Account> a) async => accounts = a;
+  @override
   Future<Settings> readSettings() async => settings;
   @override
   Future<void> writeSettings(Settings s) async {
@@ -41,9 +55,23 @@ class FakeStore extends SessionStore {
   }
 
   @override
-  Future<List<HistoryPoint>> readHistory() async => history;
+  Future<List<HistoryPoint>> readHistory() async => legacyHistory;
   @override
   Future<void> writeHistory(List<HistoryPoint> pts) async {
+    legacyHistory = pts;
+    historyWrites++;
+  }
+
+  @override
+  Future<void> clearLegacyHistory() async {
+    legacyHistory = [];
+    legacyCleared = true;
+  }
+
+  @override
+  Future<List<HistoryPoint>> readHistoryFor(String orgId) async => history;
+  @override
+  Future<void> writeHistoryFor(String orgId, List<HistoryPoint> pts) async {
     history = pts;
     historyWrites++;
   }
@@ -52,24 +80,30 @@ class FakeStore extends SessionStore {
   Future<void> clearCredentials() async {
     sessionKey = null;
     orgId = null;
+    accounts = [];
   }
 }
 
 /// A fully controllable [ClaudeApiClient] stand-in. Lets a test dictate the
-/// resolved org, the returned snapshot (or its windows), and arbitrary errors —
+/// org list, the returned snapshot (or its windows), and arbitrary errors —
 /// including non-[ClaudeApiException] errors that the real client never throws.
 class FakeApi extends ClaudeApiClient {
   FakeApi();
 
+  /// Default single org id, used when [accounts] isn't overridden.
   String orgId = 'org-1';
-  Object? resolveError;
+
+  /// Explicit org list `fetchAccounts` returns; defaults to one org from [orgId].
+  List<Account>? accounts;
+
+  Object? resolveError; // thrown by fetchAccounts
   Object? usageError;
 
   /// Builds the snapshot each `fetchUsage` returns; defaults to a mid-usage
   /// account. Override to drive notification / history logic.
   UsageSnapshot Function()? snapshotBuilder;
 
-  int resolveCalls = 0;
+  int fetchAccountsCalls = 0;
   int fetchCalls = 0;
   bool disposed = false;
 
@@ -86,10 +120,10 @@ class FakeApi extends ClaudeApiClient {
   }
 
   @override
-  Future<String> resolveOrgId(String sessionKey) async {
-    resolveCalls++;
+  Future<List<Account>> fetchAccounts(String sessionKey) async {
+    fetchAccountsCalls++;
     if (resolveError != null) throw resolveError!;
-    return orgId;
+    return accounts ?? [Account(id: orgId, name: 'Org')];
   }
 
   @override
@@ -162,6 +196,7 @@ AppController readyController({
   UsageSnapshot? usage,
   Settings settings = const Settings(),
   List<HistoryPoint>? history,
+  List<Account>? accounts,
   String? error,
   DateTime? lastUpdated,
   bool refreshing = false,
@@ -179,6 +214,7 @@ AppController readyController({
   c.usage = usage;
   c.settings = settings;
   c.history = history ?? [];
+  c.accounts = accounts ?? [];
   c.error = error;
   c.lastUpdated = lastUpdated;
   c.refreshing = refreshing;

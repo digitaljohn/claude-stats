@@ -9,6 +9,7 @@ import '../data/claude_api.dart';
 import '../data/demo_data.dart';
 import '../data/session_store.dart';
 import '../data/update_checker.dart';
+import '../models/account.dart';
 import '../models/usage.dart';
 import '../theme/claude_theme.dart';
 import 'settings.dart';
@@ -42,6 +43,7 @@ class AppController extends ChangeNotifier {
   Settings settings = const Settings();
   UsageSnapshot? usage;
   List<HistoryPoint> history = [];
+  List<Account> accounts = []; // every org the session can reach
   bool refreshing = false;
   bool signingIn = false;
   String? error; // live-fetch error
@@ -56,12 +58,25 @@ class AppController extends ChangeNotifier {
 
   bool get isDemo => mode == AppMode.demo;
 
+  /// The org currently being watched (whose usage is on screen).
+  String? get activeAccountId => _orgId;
+
+  /// The [Account] for [activeAccountId], if it's in the known list.
+  Account? get activeAccount {
+    for (final a in accounts) {
+      if (a.id == _orgId) return a;
+    }
+    return null;
+  }
+
+  /// Whether to offer the switcher — only worth it once a second org appears.
+  bool get hasMultipleAccounts => accounts.length > 1;
+
   // ── lifecycle ──────────────────────────────────────────────────────────
 
   Future<void> bootstrap() async {
     settings = await _store.readSettings();
     _applyTheme();
-    history = await _store.readHistory();
     if (const bool.fromEnvironment('mini')) {
       settings = settings.copyWith(mini: true); // coverage:ignore-line
     }
@@ -83,16 +98,57 @@ class AppController extends ChangeNotifier {
     }
     _sessionKey = key;
     _orgId = await _store.readOrgId();
+    accounts = await _store.readAccounts(); // cached list → instant switcher
+    history = await _loadHistory(_orgId);
     mode = AppMode.live;
     notifyListeners();
+    // Refresh the org list from the network (best-effort — keep the cached one
+    // if offline). If the active org disappeared, the default is re-picked, so
+    // reload its history before fetching usage.
+    final before = _orgId;
+    try {
+      await _resolveAccounts();
+    } catch (_) {/* keep cached accounts / org */}
+    if (_orgId != before) history = await _loadHistory(_orgId);
     await refresh();
     _startTimer();
+  }
+
+  /// Fetches the org list, persists it, and ensures [_orgId] points at a real
+  /// org (picking the default when the stored one is unknown/missing). Throws on
+  /// API errors so sign-in can surface them.
+  Future<void> _resolveAccounts() async {
+    final list = await _api.fetchAccounts(_sessionKey!);
+    accounts = list;
+    await _store.writeAccounts(list);
+    if (_orgId == null || !list.any((a) => a.id == _orgId)) {
+      _orgId = list.first.id;
+      await _store.writeOrgId(_orgId!);
+    }
+  }
+
+  /// Loads the per-org chart history, migrating a pre-multi-account global
+  /// history file onto the active org the first time we see one.
+  Future<List<HistoryPoint>> _loadHistory(String? orgId) async {
+    if (orgId == null) return [];
+    var h = await _store.readHistoryFor(orgId);
+    if (h.isEmpty) {
+      final legacy = await _store.readHistory();
+      if (legacy.isNotEmpty) {
+        h = legacy;
+        await _store.writeHistoryFor(orgId, h);
+        await _store.clearLegacyHistory();
+      }
+    }
+    return h;
   }
 
   Future<void> enterDemo() async {
     mode = AppMode.demo;
     usage = DemoData.snapshot();
     history = DemoData.history();
+    accounts = DemoData.accounts(); // showcases the switcher in demo mode
+    _orgId = accounts.first.id;
     lastUpdated = DateTime.now();
     notifyListeners();
   }
@@ -108,11 +164,11 @@ class AppController extends ChangeNotifier {
     signInError = null;
     notifyListeners();
     try {
-      final org = await _api.resolveOrgId(key);
       _sessionKey = key;
-      _orgId = org;
-      await _store.writeSessionKey(key);
-      await _store.writeOrgId(org);
+      _orgId = null; // fresh sign-in → pick the default org
+      await _resolveAccounts(); // validates the session + lists orgs (throws if bad)
+      await _store.writeSessionKey(key); // only persist a key that worked
+      history = await _loadHistory(_orgId);
       mode = AppMode.live;
       signingIn = false;
       notifyListeners();
@@ -124,9 +180,29 @@ class AppController extends ChangeNotifier {
     } catch (e) {
       signInError = 'Could not verify session: $e';
     }
+    _sessionKey = null;
     signingIn = false;
     notifyListeners();
     return false;
+  }
+
+  /// Switches which org the app is watching. Resets the live view (usage,
+  /// error, notification arming) and loads that org's own history, then
+  /// refreshes. A no-op for the current/unknown org.
+  Future<void> switchAccount(String orgId) async {
+    if (orgId == _orgId || !accounts.any((a) => a.id == orgId)) return;
+    _orgId = orgId;
+    if (mode == AppMode.demo) {
+      notifyListeners(); // demo data is synthetic — just re-highlight
+      return;
+    }
+    usage = null;
+    error = null;
+    _dangerNotified.clear();
+    await _store.writeOrgId(orgId);
+    history = await _loadHistory(orgId);
+    notifyListeners();
+    await refresh();
   }
 
   Future<void> signOut() async {
@@ -136,6 +212,7 @@ class AppController extends ChangeNotifier {
     usage = null;
     error = null;
     signInError = null;
+    accounts = [];
     _dangerNotified.clear();
     await _store.clearCredentials();
     mode = AppMode.signedOut;
@@ -155,11 +232,10 @@ class AppController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (mode != AppMode.live || _sessionKey == null) return;
+    if (mode != AppMode.live || _sessionKey == null || _orgId == null) return;
     refreshing = true;
     notifyListeners();
     try {
-      _orgId ??= await _api.resolveOrgId(_sessionKey!);
       final snap =
           await _api.fetchUsage(sessionKey: _sessionKey!, orgId: _orgId!);
       usage = snap;
@@ -257,7 +333,7 @@ class AppController extends ChangeNotifier {
     if (history.length > 4000) {
       history = history.sublist(history.length - 4000);
     }
-    await _store.writeHistory(history);
+    if (_orgId != null) await _store.writeHistoryFor(_orgId!, history);
   }
 
   void _maybeNotify(UsageSnapshot snap) {

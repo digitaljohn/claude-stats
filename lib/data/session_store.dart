@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import '../models/account.dart';
 import '../models/usage.dart';
 import '../state/settings.dart';
 
@@ -18,8 +19,10 @@ class SessionStore {
 
   static const _kKey = 'session_key';
   static const _kOrg = 'org_id';
+  static const _kAccounts = 'accounts';
   static const _kSettings = 'settings';
-  static const _kHistory = 'history';
+  static const _kHistory = 'history'; // legacy single-account history
+  static const _kHistoryByOrg = 'history_by_org'; // { orgId: encoded points }
 
   Future<void> _ensure() async {
     if (_loaded) return;
@@ -74,6 +77,19 @@ class SessionStore {
     await _flush();
   }
 
+  /// The org list discovered last time we talked to the API — cached so the
+  /// switcher can render immediately on launch, before the network refresh.
+  Future<List<Account>> readAccounts() async {
+    await _ensure();
+    return Account.decode(_data[_kAccounts] as String?);
+  }
+
+  Future<void> writeAccounts(List<Account> accounts) async {
+    await _ensure();
+    _data[_kAccounts] = Account.encode(accounts);
+    await _flush();
+  }
+
   Future<Settings> readSettings() async {
     await _ensure();
     return Settings.decode(_data[_kSettings] as String?);
@@ -85,6 +101,8 @@ class SessionStore {
     await _flush();
   }
 
+  /// Legacy global history (pre multi-account). Retained only so a one-time
+  /// migration can re-home it under the active org; new writes go per-org.
   Future<List<HistoryPoint>> readHistory() async {
     await _ensure();
     return HistoryPoint.decode(_data[_kHistory] as String?);
@@ -96,11 +114,39 @@ class SessionStore {
     await _flush();
   }
 
-  /// Wipes credentials on sign-out; settings/history are kept.
+  Future<void> clearLegacyHistory() async {
+    await _ensure();
+    _data.remove(_kHistory);
+    await _flush();
+  }
+
+  /// Per-org history: each org keeps its own 7-day chart so switching accounts
+  /// never mixes one org's usage into another's.
+  Future<List<HistoryPoint>> readHistoryFor(String orgId) async {
+    await _ensure();
+    final map = _data[_kHistoryByOrg];
+    if (map is Map && map[orgId] is String) {
+      return HistoryPoint.decode(map[orgId] as String);
+    }
+    return [];
+  }
+
+  Future<void> writeHistoryFor(String orgId, List<HistoryPoint> pts) async {
+    await _ensure();
+    final raw = _data[_kHistoryByOrg];
+    final map = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    map[orgId] = HistoryPoint.encode(pts);
+    _data[_kHistoryByOrg] = map;
+    await _flush();
+  }
+
+  /// Wipes credentials + the cached org list on sign-out; settings and per-org
+  /// history are kept (so signing back into the same org restores its chart).
   Future<void> clearCredentials() async {
     await _ensure();
     _data.remove(_kKey);
     _data.remove(_kOrg);
+    _data.remove(_kAccounts);
     await _flush();
   }
 }

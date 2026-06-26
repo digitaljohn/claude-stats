@@ -39,6 +39,13 @@ void main() {
     expect(pts[mid].weekly, lessThan(pts[mid - 1].weekly));
   });
 
+  test('accounts seed a personal + team org for the switcher', () {
+    final accounts = DemoData.accounts();
+    expect(accounts.length, 2);
+    expect(accounts.map((a) => a.typeLabel), ['Personal', 'Team']);
+    expect(accounts.map((a) => a.id).toSet().length, 2); // distinct ids
+  });
+
   test('history is deterministic (seeded RNG)', () {
     final a = DemoData.history();
     final b = DemoData.history();

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:claude_stats/data/update_checker.dart';
+import 'package:claude_stats/models/account.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/ui/dashboard_screen.dart';
 import 'package:claude_stats/ui/settings_panel.dart';
+import 'package:claude_stats/ui/widgets/account_switcher.dart';
 import 'package:claude_stats/ui/widgets/window_scaffold.dart';
 
 import '../helpers/fakes.dart';
@@ -193,6 +195,86 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350)); // DragToMoveArea arena
     expect(launched.single.toString(), 'https://www.buymeacoffee.com/digitaljohn');
 
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('multi-account: switcher appears and switches the active org',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(
+      mode: AppMode.live,
+      usage: screenSnapshot(),
+      history: someHistory(),
+      accounts: const [
+        Account(id: 'personal', name: 'Personal'),
+        Account(id: 'team', name: 'Acme', type: 'team'),
+      ],
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
+
+    expect(find.byType(AccountSwitcher), findsOneWidget);
+    expect(find.text('Personal'), findsOneWidget); // default (first) org
+
+    await tester.tap(find.byType(AccountSwitcher));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Acme').last);
+    await tester.pumpAndSettle();
+    expect(c.activeAccountId, 'team');
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('switching org while the menu closes does not crash', (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(
+      mode: AppMode.live,
+      usage: screenSnapshot(),
+      history: someHistory(),
+      accounts: const [
+        Account(id: 'personal', name: 'Personal'),
+        Account(id: 'team', name: 'Acme', type: 'team'),
+      ],
+    );
+    addTearDown(c.dispose);
+    // Mirror main.dart: rebuild the screen on every notify, so selecting an org
+    // (which nulls `usage`) actually swaps the body while the menu animates
+    // closed — the exact sequence that used to throw a deactivated-ancestor.
+    await tester.pumpWidget(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ListenableBuilder(
+        listenable: c,
+        builder: (_, _) => DashboardScreen(controller: c),
+      ),
+    ));
+
+    await tester.tap(find.byType(AccountSwitcher));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Acme').last);
+    // usage is now null → loading spinner spins forever, so step frames by hand
+    // rather than pumpAndSettle.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tester.takeException(), isNull);
+    expect(c.activeAccountId, 'team');
+    expect(find.byType(AccountSwitcher), findsOneWidget); // still mounted
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('single account: no switcher is shown', (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(
+      mode: AppMode.live,
+      usage: screenSnapshot(),
+      history: someHistory(),
+      accounts: const [Account(id: 'solo', name: 'Solo')],
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
+    expect(find.byType(AccountSwitcher), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }
