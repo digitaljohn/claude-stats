@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/update_checker.dart';
 import '../state/app_controller.dart';
 import '../state/settings.dart';
 import '../theme/claude_theme.dart';
@@ -236,7 +237,7 @@ class SettingsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Center(
-            child: Text('claude·stats  v0.1.0',
+            child: Text('claude·stats  v$kAppVersion',
                 style: AppText.mono(AppColors.textFaint, size: 9)),
           ),
         ],
