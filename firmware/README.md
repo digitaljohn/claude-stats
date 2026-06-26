@@ -10,10 +10,10 @@ the host-addressable RGB matrix). So this needs a **small one-time custom-QMK
 flash**. Everything here is additive and reversible — re-flashing NuPhy's stock
 firmware restores the keyboard exactly.
 
-> ⚠️ **Not yet verified on hardware by the author.** The host app (detection,
-> the settings toggle, the gauge maths) is fully tested; this firmware patch is
-> written against NuPhy's published source and is correct by construction, but
-> you are flashing it — read [Recovery](#recovery) first.
+> ✅ **Built, flashed and verified on a real Air75 V2.** It compiles clean
+> (~55 KB), flashes over `dfu-util`, and the gauge renders correctly on the side
+> strips. It's still custom firmware you're flashing, though — read
+> [Recovery](#recovery) first.
 
 ---
 
@@ -57,18 +57,19 @@ cleanly; these instructions match its layout
 
 ```bash
 cd keyboards/nuphy/air75_v2/ansi/keymaps
-cp -r default claude_stats          # start from the stock layout (not `via`)
+cp -r via claude_stats              # the fork ships a `via` keymap; base on it
 ```
 
-Add to `keymaps/claude_stats/rules.mk`:
+Set `keymaps/claude_stats/rules.mk` to exactly:
 
 ```make
+VIA_ENABLE = no
 RAW_ENABLE = yes
 ```
 
-> Start from `default`, **not** `via`: VIA owns `raw_hid_receive` itself, which
-> would collide with ours. (You keep the default key layout; remapping is a
-> separate concern.)
+> Disable VIA: it owns `raw_hid_receive` itself, which would collide with ours.
+> `RAW_ENABLE` keeps the `0xFF60` interface. You keep the keymap's key layout;
+> remapping is a separate concern.
 
 ### 2. Handle the report — `keymaps/claude_stats/keymap.c`
 
