@@ -61,11 +61,11 @@ people who type `flutter run` for fun.
   limits. When the app spots more than one, a switcher appears at the top of the
   dashboard so you can flip between them in a tap. Each org keeps its **own
   7-day history**, so switching never smears one account's usage across another.
-- **Keyboard side lights** _(NuPhy Air75 V2)_ — mirror your usage onto the
-  keyboard's two side strips: **left = session**, **right = weekly**, each a
-  6-LED fill that runs green → amber → red. A toggle appears under
-  **Settings → Keyboard** only when a compatible keyboard is detected. Needs a
-  one-time custom-firmware flash — see [`firmware/`](firmware/README.md).
+- **Keyboard side lights** _(NuPhy Air75 V2 — very experimental)_ — mirror your
+  usage onto the keyboard's two side strips: **left = session**, **right =
+  weekly**, each a 6-LED fill that runs white → amber → red. A toggle appears
+  under **Settings → Keyboard** only when a compatible keyboard is detected.
+  Needs a one-time custom-firmware flash — see [`firmware/`](firmware/README.md).
 - **7-day history chart** — a crisp `CustomPaint` column chart that goes cream →
   amber → red exactly where you breached a threshold.
 - **Auto-refresh** every 1 / 5 / 15 / 30 min, with **desktop notifications**

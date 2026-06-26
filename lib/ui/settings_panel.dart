@@ -5,6 +5,10 @@ import '../state/settings.dart';
 import '../theme/claude_theme.dart';
 import 'widgets/app_card.dart';
 
+/// The keyboard side-light setup guide (custom firmware flash).
+const String _firmwareGuideUrl =
+    'https://github.com/digitaljohn/claude-stats/blob/main/firmware/README.md';
+
 /// Full-body overlay with all preferences + sign-out.
 class SettingsPanel extends StatelessWidget {
   const SettingsPanel({super.key, required this.controller, required this.onClose});
@@ -144,18 +148,55 @@ class SettingsPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SectionLabel('Keyboard'),
-                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const SectionLabel('Keyboard'),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.warn.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(AppDims.radiusXs),
+                          border:
+                              Border.all(color: AppColors.warn.withValues(alpha: 0.4)),
+                        ),
+                        child: Text('VERY EXPERIMENTAL',
+                            style: AppText.mono(AppColors.warn, size: 8)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   _ToggleRow(
                     label: 'NuPhy side lights',
                     value: s.keyboardLightsEnabled,
                     onChanged: controller.setKeyboardLights,
                     last: true,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
-                    'Mirror session (left) + weekly (right) onto the side strips.',
+                    'Mirror session (left) + weekly (right) onto the side strips. '
+                    'Needs a one-time custom keyboard-firmware flash — see the guide.',
                     style: AppText.label(AppColors.textFaint).copyWith(height: 1.35),
+                  ),
+                  const SizedBox(height: 10),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => controller.openUrl(_firmwareGuideUrl),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.menu_book_outlined,
+                              size: 13, color: AppColors.accent),
+                          const SizedBox(width: 6),
+                          Text('Firmware setup guide',
+                              style: AppText.label(AppColors.accent)),
+                          const SizedBox(width: 4),
+                          Icon(Icons.open_in_new, size: 11, color: AppColors.accent),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

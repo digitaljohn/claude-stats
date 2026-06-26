@@ -117,13 +117,18 @@ void main() {
     expect(find.text('NuPhy side lights'), findsNothing);
   });
 
-  testWidgets('keyboard card appears when detected and its switch toggles',
+  testWidgets('keyboard card: experimental tag, switch, firmware-guide link',
       (tester) async {
     await useTallSurface(tester);
+    final launched = <Uri>[];
     final c = readyController(
       mode: AppMode.demo,
       usage: screenSnapshot(),
       keyboardDetected: true,
+      urlLauncher: (u) async {
+        launched.add(u);
+        return true;
+      },
     );
     addTearDown(c.dispose);
     await tester.pumpWidget(wrap(
@@ -132,6 +137,7 @@ void main() {
     ));
 
     expect(find.text('KEYBOARD'), findsOneWidget);
+    expect(find.text('VERY EXPERIMENTAL'), findsOneWidget);
     expect(find.text('NuPhy side lights'), findsOneWidget);
     expect(c.settings.keyboardLightsEnabled, false);
 
@@ -145,6 +151,11 @@ void main() {
     await tester.tap(kbSwitch);
     await tester.pump();
     expect(c.settings.keyboardLightsEnabled, true);
+
+    // The firmware setup guide opens the GitHub README.
+    await tester.tap(find.text('Firmware setup guide'));
+    await tester.pump();
+    expect(launched.single.toString(), contains('firmware/README.md'));
   });
 
   testWidgets('hovering the danger button changes its background', (tester) async {
