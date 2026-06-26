@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:claude_stats/data/claude_api.dart';
 import 'package:claude_stats/data/update_checker.dart';
+import 'package:claude_stats/models/account.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/state/settings.dart';
@@ -65,6 +66,141 @@ void main() {
       expect(c.usage, isNotNull);
       expect(c.history, isNotEmpty);
       expect(c.lastUpdated, isNotNull);
+      // Demo seeds a couple of orgs so the switcher is visible.
+      expect(c.hasMultipleAccounts, true);
+      expect(c.activeAccount, isNotNull);
+    });
+  });
+
+  group('accounts + switching', () {
+    List<Account> twoOrgs() => const [
+          Account(id: 'team', name: 'Acme', type: 'team'),
+          Account(id: 'personal', name: 'Me'),
+        ];
+
+    test('bootstrap refreshes + persists the org list, keeping a valid org',
+        () async {
+      final store = FakeStore(sessionKey: 'sk', orgId: 'team');
+      final api = FakeApi()..accounts = twoOrgs();
+      final c = make(store, api);
+      await c.bootstrap();
+      expect(c.accounts.length, 2);
+      expect(c.hasMultipleAccounts, true);
+      expect(c.activeAccountId, 'team');
+      expect(c.activeAccount?.name, 'Acme');
+      expect(store.accounts.length, 2); // cached for next launch
+    });
+
+    test('bootstrap re-picks the default when the stored org is gone', () async {
+      final store = FakeStore(sessionKey: 'sk', orgId: 'gone');
+      final api = FakeApi()..accounts = twoOrgs();
+      final c = make(store, api);
+      await c.bootstrap();
+      expect(c.activeAccountId, 'team'); // first of the list
+      expect(store.orgId, 'team');
+    });
+
+    test('bootstrap keeps the cached list when the network resolve fails',
+        () async {
+      final store = FakeStore(
+        sessionKey: 'sk',
+        orgId: 'cached',
+        accounts: const [
+          Account(id: 'cached', name: 'Cached'),
+          Account(id: 'other', name: 'Other'),
+        ],
+      );
+      final api = FakeApi()..resolveError = ClaudeApiException('offline');
+      final c = make(store, api);
+      await c.bootstrap();
+      expect(c.accounts.length, 2); // cached list retained
+      expect(c.activeAccountId, 'cached');
+      expect(c.usage, isNotNull); // usage refresh still ran
+      expect(api.fetchCalls, 1);
+    });
+
+    test('refresh bails when the org is unknown and resolve fails', () async {
+      final store = FakeStore(sessionKey: 'sk'); // no org, no cache
+      final api = FakeApi()..resolveError = ClaudeApiException('offline');
+      final c = make(store, api);
+      await c.bootstrap();
+      expect(c.mode, AppMode.live);
+      expect(c.activeAccountId, isNull);
+      expect(c.usage, isNull);
+      expect(c.activeAccount, isNull);
+      expect(api.fetchCalls, 0); // never reached fetchUsage
+    });
+
+    test('switchAccount (live) resets state, loads org history and refreshes',
+        () async {
+      final store = FakeStore(sessionKey: 'sk', orgId: 'team');
+      final api = FakeApi()..accounts = twoOrgs();
+      final c = make(store, api);
+      await c.bootstrap();
+      final fetchesBefore = api.fetchCalls;
+      var notified = 0;
+      c.addListener(() => notified++);
+
+      await c.switchAccount('personal');
+      expect(c.activeAccountId, 'personal');
+      expect(store.orgId, 'personal'); // persisted
+      expect(api.fetchCalls, fetchesBefore + 1); // refreshed
+      expect(c.usage, isNotNull);
+      expect(notified, greaterThan(0));
+    });
+
+    test('switchAccount no-ops for the current or an unknown org', () async {
+      final store = FakeStore(sessionKey: 'sk', orgId: 'team');
+      final api = FakeApi()..accounts = twoOrgs();
+      final c = make(store, api);
+      await c.bootstrap();
+      final fetchesBefore = api.fetchCalls;
+
+      await c.switchAccount('team'); // already active
+      await c.switchAccount('nope'); // not in the list
+      expect(c.activeAccountId, 'team');
+      expect(api.fetchCalls, fetchesBefore); // nothing refreshed
+    });
+
+    test('switchAccount in demo just re-highlights without persisting',
+        () async {
+      final store = FakeStore();
+      final c = make(store, FakeApi());
+      await c.enterDemo();
+      final target = c.accounts.last.id;
+      await c.switchAccount(target);
+      expect(c.activeAccountId, target);
+      expect(c.usage, isNotNull); // synthetic data retained
+      expect(store.orgId, isNull); // demo never writes the org
+    });
+
+    test('migrates legacy global history onto the active org', () async {
+      final recent = HistoryPoint(
+          t: DateTime.now().subtract(const Duration(hours: 1)),
+          session: 0.3,
+          weekly: 0.4);
+      final store = FakeStore(
+        sessionKey: 'sk',
+        orgId: 'o',
+        legacyHistory: [recent],
+      );
+      final api = FakeApi()..accounts = const [Account(id: 'o', name: 'Org')];
+      final c = make(store, api);
+      await c.bootstrap();
+      expect(store.legacyCleared, true); // legacy file dropped after migration
+      expect(c.history, isNotEmpty); // migrated points carried over
+    });
+
+    test('signIn discovers multiple orgs and picks the default', () async {
+      final store = FakeStore();
+      final api = FakeApi()..accounts = twoOrgs();
+      final c = make(store, api);
+      final ok = await c.signIn('sk');
+      expect(ok, true);
+      expect(c.hasMultipleAccounts, true);
+      expect(c.activeAccountId, 'team');
+      expect(store.orgId, 'team');
+      expect(store.accounts.length, 2);
     });
   });
 
@@ -75,7 +211,7 @@ void main() {
       final ok = await c.signIn('   ');
       expect(ok, false);
       expect(c.signInError, contains('Paste your sessionKey'));
-      expect(api.resolveCalls, 0);
+      expect(api.fetchAccountsCalls, 0);
     });
 
     test('success resolves the org, persists, and goes live', () async {
@@ -126,13 +262,15 @@ void main() {
       expect(c.refreshing, false);
     });
 
-    test('resolves the org lazily when missing', () async {
+    test('resolves the org from the account list when missing', () async {
       final store = FakeStore(sessionKey: 'sk'); // no orgId
       final api = FakeApi();
       final c = make(store, api);
       await c.bootstrap();
-      expect(api.resolveCalls, 1);
+      expect(api.fetchAccountsCalls, 1);
       expect(api.fetchCalls, 1);
+      expect(c.activeAccountId, 'org-1'); // default org persisted
+      expect(store.orgId, 'org-1');
     });
 
     test('records a ClaudeApiException as the live error', () async {

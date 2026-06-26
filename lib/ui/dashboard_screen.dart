@@ -6,6 +6,7 @@ import '../state/app_controller.dart';
 import '../state/settings.dart';
 import '../theme/claude_theme.dart';
 import 'settings_panel.dart';
+import 'widgets/account_switcher.dart';
 import 'widgets/app_card.dart';
 import 'widgets/countdown_text.dart';
 import 'widgets/heat_bar.dart';
@@ -69,25 +70,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
       child: Stack(
         children: [
-          if (usage == null)
-            const _LoadingState()
-          else
-            ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-              children: [
-                if (c.availableUpdate != null) ...[
-                  _UpdateBanner(
-                    info: c.availableUpdate!,
-                    onDownload: c.openDownloadUrl,
+          // The switcher lives ABOVE the loading/content swap so it (and its
+          // open dropdown) is never torn out of the tree mid-interaction —
+          // switching an org nulls `usage`, and unmounting the menu's anchor
+          // while it animates closed throws a deactivated-ancestor error.
+          Column(
+            children: [
+              if (c.hasMultipleAccounts)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: AccountSwitcher(
+                    accounts: c.accounts,
+                    activeId: c.activeAccountId,
+                    onSelect: c.switchAccount,
                   ),
-                  const SizedBox(height: 12),
-                ],
-                if (showDemoBanner) const _Banner.demo(),
-                if (c.error != null) _Banner.error(c.error!),
-                if (showDemoBanner || c.error != null) const SizedBox(height: 12),
-                _full(usage, s),
-              ],
-            ),
+                ),
+              Expanded(
+                child: usage == null
+                    ? const _LoadingState()
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                        children: [
+                          if (c.availableUpdate != null) ...[
+                            _UpdateBanner(
+                              info: c.availableUpdate!,
+                              onDownload: c.openDownloadUrl,
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          if (showDemoBanner) const _Banner.demo(),
+                          if (c.error != null) _Banner.error(c.error!),
+                          if (showDemoBanner || c.error != null)
+                            const SizedBox(height: 12),
+                          _full(usage, s),
+                        ],
+                      ),
+              ),
+            ],
+          ),
           if (_showSettings)
             Positioned.fill(
               child: SettingsPanel(

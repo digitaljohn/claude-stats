@@ -8,7 +8,7 @@
 
 [![Platform](https://img.shields.io/badge/platform-macOS-1F1E1D?logo=apple)](https://github.com/digitaljohn/claude-stats)
 [![Flutter](https://img.shields.io/badge/Flutter-3.35-1F1E1D?logo=flutter)](https://flutter.dev)
-[![Tests](https://img.shields.io/badge/tests-165%20passing-D97757)](#testing)
+[![Tests](https://img.shields.io/badge/tests-216%20passing-D97757)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-D97757)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-A6A399)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/digitaljohn)
@@ -44,9 +44,10 @@ people who type `flutter run` for fun.
   it to bring the window forward.
 - **One-click sign in.** Hit **Log in with Claude** and an embedded claude.ai
   browser opens. Sign in like a normal human; the moment your `sessionKey`
-  cookie appears, the app grabs it, resolves your org, and starts pulling live
-  numbers. No DevTools, no copy-pasting cookies at midnight. (A paste-the-key
-  fallback is tucked under _Advanced_ for the cookie connoisseurs.)
+  cookie appears, the app grabs it, discovers every org your login can reach, and
+  starts pulling live numbers. No DevTools, no copy-pasting cookies at midnight.
+  (A paste-the-key fallback is tucked under _Advanced_ for the cookie
+  connoisseurs.)
 - **Session + Weekly limits** as heat-coloured rings and bars, with live
   `resets in …` countdowns — the two numbers you actually care about, big.
 - **A countdown ring that switches gears.** When you hit a limit, the ring stops
@@ -55,6 +56,11 @@ people who type `flutter run` for fun.
   nail-biter. Watching it empty is weirdly therapeutic.
 - **Per-model breakdown** — Opus, Sonnet, Haiku, Cowork, and friends, read from
   the API's `weekly_scoped` limits so a model can't hide from you.
+- **Account switcher.** One claude.ai login often spans more than one org — a
+  **personal** workspace next to a **corporate/team** one — each with its own
+  limits. When the app spots more than one, a switcher appears at the top of the
+  dashboard so you can flip between them in a tap. Each org keeps its **own
+  7-day history**, so switching never smears one account's usage across another.
 - **7-day history chart** — a crisp `CustomPaint` column chart that goes cream →
   amber → red exactly where you breached a threshold.
 - **Auto-refresh** every 1 / 5 / 15 / 30 min, with **desktop notifications**

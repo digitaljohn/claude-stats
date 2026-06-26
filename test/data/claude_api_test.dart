@@ -22,21 +22,32 @@ ClaudeApiClient clientFor(Map<String, (String, int)> routes) {
 }
 
 void main() {
-  group('resolveOrgId', () {
-    test('prefers a chat-capable team org and reads its uuid', () async {
+  group('fetchAccounts', () {
+    test('lists all orgs, putting a chat-capable team first', () async {
       final api = clientFor({
         '/organizations': (
           jsonEncode([
-            {'uuid': 'personal', 'capabilities': ['chat']},
-            {'uuid': 'team-1', 'capabilities': ['chat'], 'raven_type': 'team'},
+            {'uuid': 'personal', 'name': 'Personal', 'capabilities': ['chat']},
+            {
+              'uuid': 'team-1',
+              'name': 'Acme',
+              'capabilities': ['chat'],
+              'raven_type': 'team',
+            },
           ]),
           200,
         ),
       });
-      expect(await api.resolveOrgId('key'), 'team-1');
+      final accounts = await api.fetchAccounts('key');
+      expect(accounts.map((a) => a.id).toList(), ['team-1', 'personal']);
+      // Default pick (first) matches the old single-org behaviour.
+      expect(accounts.first.id, 'team-1');
+      expect(accounts.first.name, 'Acme');
+      expect(accounts.first.typeLabel, 'Team');
+      expect(accounts[1].typeLabel, 'Personal');
     });
 
-    test('falls back to the first chat org when none are teams', () async {
+    test('keeps the API order when none are teams', () async {
       final api = clientFor({
         '/organizations': (
           jsonEncode([
@@ -46,7 +57,8 @@ void main() {
           200,
         ),
       });
-      expect(await api.resolveOrgId('key'), 'a');
+      final accounts = await api.fetchAccounts('key');
+      expect(accounts.map((a) => a.id).toList(), ['a', 'b']);
     });
 
     test('falls back to all orgs when none are chat-capable, using id', () async {
@@ -58,22 +70,38 @@ void main() {
           200,
         ),
       });
-      expect(await api.resolveOrgId('key'), 'only-one');
+      final accounts = await api.fetchAccounts('key');
+      expect(accounts.single.id, 'only-one');
+      expect(accounts.single.chatCapable, false);
+    });
+
+    test('skips orgs without a usable id', () async {
+      final api = clientFor({
+        '/organizations': (
+          jsonEncode([
+            {'capabilities': ['chat']}, // no id -> dropped
+            {'uuid': 'good', 'capabilities': ['chat']},
+          ]),
+          200,
+        ),
+      });
+      final accounts = await api.fetchAccounts('key');
+      expect(accounts.single.id, 'good');
     });
 
     test('throws when the list is empty or not a list', () async {
       final empty = clientFor({'/organizations': ('[]', 200)});
-      expect(() => empty.resolveOrgId('k'), throwsA(isA<ClaudeApiException>()));
+      expect(() => empty.fetchAccounts('k'), throwsA(isA<ClaudeApiException>()));
 
       final notList = clientFor({'/organizations': ('{}', 200)});
-      expect(() => notList.resolveOrgId('k'), throwsA(isA<ClaudeApiException>()));
+      expect(() => notList.fetchAccounts('k'), throwsA(isA<ClaudeApiException>()));
     });
 
-    test('throws when the chosen org has no id', () async {
+    test('throws when no org carries a usable id', () async {
       final api = clientFor({
         '/organizations': (jsonEncode([{'capabilities': ['chat']}]), 200),
       });
-      expect(() => api.resolveOrgId('k'),
+      expect(() => api.fetchAccounts('k'),
           throwsA(predicate((e) => e is ClaudeApiException && e.statusCode == null)));
     });
   });
@@ -82,7 +110,7 @@ void main() {
     test('network error is wrapped', () async {
       final api = ClaudeApiClient(client: MockClient((_) => throw Exception('boom')));
       await expectLater(
-        api.resolveOrgId('k'),
+        api.fetchAccounts('k'),
         throwsA(predicate((e) => e is ClaudeApiException && e.message.contains('Network error'))),
       );
     });
@@ -90,12 +118,12 @@ void main() {
     test('401/403 reports a rejected session with status code', () async {
       final api = clientFor({'/organizations': ('nope', 401)});
       await expectLater(
-        api.resolveOrgId('k'),
+        api.fetchAccounts('k'),
         throwsA(predicate((e) => e is ClaudeApiException && e.statusCode == 401)),
       );
       final api403 = clientFor({'/organizations': ('nope', 403)});
       await expectLater(
-        api403.resolveOrgId('k'),
+        api403.fetchAccounts('k'),
         throwsA(predicate((e) => e is ClaudeApiException && e.statusCode == 403)),
       );
     });
@@ -103,7 +131,7 @@ void main() {
     test('other >=400 reports a failed request', () async {
       final api = clientFor({'/organizations': ('oops', 500)});
       await expectLater(
-        api.resolveOrgId('k'),
+        api.fetchAccounts('k'),
         throwsA(predicate((e) => e is ClaudeApiException && e.statusCode == 500)),
       );
     });
@@ -111,7 +139,7 @@ void main() {
     test('non-JSON success body throws', () async {
       final api = clientFor({'/organizations': ('<html>not json</html>', 200)});
       await expectLater(
-        api.resolveOrgId('k'),
+        api.fetchAccounts('k'),
         throwsA(predicate((e) => e is ClaudeApiException && e.message.contains('not JSON'))),
       );
     });

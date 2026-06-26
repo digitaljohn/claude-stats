@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../models/account.dart';
 import '../models/usage.dart';
 
 /// Synthesises a believable account so the full UI — rings, countdowns,
@@ -7,6 +8,12 @@ import '../models/usage.dart';
 /// viewable without a real session key.
 class DemoData {
   static final _now = DateTime.now();
+
+  /// A personal + a team org, so demo mode shows off the account switcher.
+  static List<Account> accounts() => const [
+        Account(id: 'demo-personal', name: 'Personal', type: null),
+        Account(id: 'demo-team', name: 'Acme Corp', type: 'team'),
+      ];
 
   static UsageSnapshot snapshot() {
     return UsageSnapshot(

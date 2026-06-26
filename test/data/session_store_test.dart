@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:claude_stats/data/session_store.dart';
+import 'package:claude_stats/models/account.dart';
 import 'package:claude_stats/models/usage.dart';
 import 'package:claude_stats/state/settings.dart';
 
@@ -53,17 +54,65 @@ void main() {
     expect(h.single.session, 0.4);
   });
 
-  test('clearCredentials wipes key + org but keeps settings/history', () async {
+  test('clearCredentials wipes key + org + accounts but keeps settings/history',
+      () async {
     final store = SessionStore();
     await store.writeSessionKey('sk');
     await store.writeOrgId('org');
+    await store.writeAccounts(const [Account(id: 'org', name: 'Acme')]);
     await store.writeSettings(const Settings(refreshSeconds: 120));
+    await store.writeHistoryFor('org', [
+      HistoryPoint(t: DateTime(2026, 6, 22, 10), session: 0.4, weekly: 0.6),
+    ]);
     await store.clearCredentials();
 
     final reopened = SessionStore();
     expect(await reopened.readSessionKey(), isNull);
     expect(await reopened.readOrgId(), isNull);
+    expect(await reopened.readAccounts(), isEmpty);
     expect((await reopened.readSettings()).refreshSeconds, 120);
+    // Per-org history survives a sign-out.
+    expect((await reopened.readHistoryFor('org')).single.session, 0.4);
+  });
+
+  test('accounts persist and reload', () async {
+    final store = SessionStore();
+    await store.writeAccounts(const [
+      Account(id: 'team', name: 'Acme', type: 'team'),
+      Account(id: 'personal', name: 'Me'),
+    ]);
+    final reopened = SessionStore();
+    final accounts = await reopened.readAccounts();
+    expect(accounts.map((a) => a.id).toList(), ['team', 'personal']);
+    expect(accounts.first.typeLabel, 'Team');
+    expect(accounts.last.typeLabel, 'Personal');
+  });
+
+  test('per-org history is isolated between orgs', () async {
+    final store = SessionStore();
+    await store.writeHistoryFor('a', [
+      HistoryPoint(t: DateTime(2026, 6, 22, 9), session: 0.1, weekly: 0.2),
+    ]);
+    await store.writeHistoryFor('b', [
+      HistoryPoint(t: DateTime(2026, 6, 22, 9), session: 0.8, weekly: 0.9),
+      HistoryPoint(t: DateTime(2026, 6, 22, 10), session: 0.7, weekly: 0.95),
+    ]);
+
+    final reopened = SessionStore();
+    expect((await reopened.readHistoryFor('a')).single.session, 0.1);
+    expect((await reopened.readHistoryFor('b')).length, 2);
+    // An org with no stored history reads back empty.
+    expect(await reopened.readHistoryFor('c'), isEmpty);
+  });
+
+  test('clearLegacyHistory drops the pre-multi-account history file', () async {
+    final store = SessionStore();
+    await store.writeHistory([
+      HistoryPoint(t: DateTime(2026, 6, 22, 10), session: 0.4, weekly: 0.6),
+    ]);
+    expect(await store.readHistory(), isNotEmpty);
+    await store.clearLegacyHistory();
+    expect(await SessionStore().readHistory(), isEmpty);
   });
 
   test('_unwrap returns null for non-string and invalid base64', () async {

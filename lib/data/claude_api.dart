@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/account.dart';
 import '../models/usage.dart';
 
 class ClaudeApiException implements Exception {
@@ -82,8 +83,16 @@ class ClaudeApiClient {
     }
   }
 
-  /// Picks the best chat-capable organisation id for the account.
-  Future<String> resolveOrgId(String sessionKey) async {
+  /// Lists every organisation the session can reach, ordered with the best
+  /// default first.
+  ///
+  /// A single login can expose several orgs (personal + team/corporate); we want
+  /// them all so the user can switch between them. Selection mirrors the old
+  /// single-org pick: prefer the chat-capable orgs, and within those put `team`
+  /// orgs first — so `accounts.first` is the same org the app would have locked
+  /// onto before, while the rest stay available. Orgs without a usable id are
+  /// dropped (they can't be queried). Throws when nothing usable is found.
+  Future<List<Account>> fetchAccounts(String sessionKey) async {
     final data = await _get('/organizations', sessionKey);
     if (data is! List || data.isEmpty) {
       throw ClaudeApiException('No organizations found for this session.');
@@ -96,11 +105,18 @@ class ClaudeApiClient {
 
     final chat = orgs.where(chatCapable).toList();
     final pool = chat.isNotEmpty ? chat : orgs;
-    final team = pool.where((o) => o['raven_type'] == 'team').toList();
-    final chosen = team.isNotEmpty ? team.first : pool.first;
-    final id = chosen['uuid'] ?? chosen['id'];
-    if (id == null) throw ClaudeApiException('Organization id missing.');
-    return '$id';
+    // Teams first, otherwise preserve the API's order (stable).
+    final ordered = [
+      ...pool.where((o) => o['raven_type'] == 'team'),
+      ...pool.where((o) => o['raven_type'] != 'team'),
+    ];
+    final accounts = [
+      for (final o in ordered) ?Account.fromApi(o),
+    ];
+    if (accounts.isEmpty) {
+      throw ClaudeApiException('No usable organization id in the response.');
+    }
+    return accounts;
   }
 
   /// Reads `/organizations/{orgId}/usage` and returns the session (5-hour) and
