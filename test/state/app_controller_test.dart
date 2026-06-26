@@ -22,8 +22,9 @@ void main() {
     removePluginFakes(tmp);
   });
 
-  AppController make(FakeStore store, FakeApi api) {
-    final c = AppController(store: store, api: api);
+  AppController make(FakeStore store, FakeApi api, [FakeSideLightDriver? lights]) {
+    final c = AppController(
+        store: store, api: api, sideLights: lights ?? FakeSideLightDriver());
     addTearDown(c.dispose);
     return c;
   }
@@ -472,7 +473,8 @@ void main() {
         settings: const Settings(refreshSeconds: 60),
       );
       final api = FakeApi();
-      final c = AppController(store: store, api: api);
+      final c = AppController(
+          store: store, api: api, sideLights: FakeSideLightDriver());
       c.bootstrap();
       async.flushMicrotasks();
       expect(api.fetchCalls, 1); // initial refresh
@@ -545,6 +547,114 @@ void main() {
       addTearDown(c.dispose);
       await c.openUrl('https://example.com/x');
       expect(launched.single.toString(), 'https://example.com/x');
+    });
+  });
+
+  group('keyboard side lights', () {
+    test('bootstrap records whether a keyboard was detected', () async {
+      final lights = FakeSideLightDriver(present: true);
+      final c = make(FakeStore(), FakeApi(), lights);
+      await c.bootstrap();
+      expect(lights.detectCalls, greaterThan(0));
+      expect(c.keyboardDetected, true);
+    });
+
+    test('enabling pushes a zone-coloured gauge; disabling releases', () async {
+      final store = FakeStore(sessionKey: 'sk', orgId: 'o');
+      final api = FakeApi()
+        ..snapshotBuilder = () => FakeApi.snapshotWith(session: 0.95, weekly: 0.5);
+      final lights = FakeSideLightDriver(present: true);
+      final c = make(store, api, lights);
+      await c.bootstrap();
+      expect(lights.gauges, isEmpty); // off by default
+
+      await c.setKeyboardLights(true);
+      expect(store.settings.keyboardLightsEnabled, true);
+      final g = lights.gauges.last;
+      expect(g.leftPct, 95); // session fill
+      expect((g.left.r, g.left.g, g.left.b), (255, 0, 0)); // danger → red
+      expect(g.rightPct, 50); // weekly fill
+      expect((g.right.r, g.right.g, g.right.b), (0xF5, 0xF4, 0xEE)); // good → cream
+
+      await c.setKeyboardLights(false);
+      expect(lights.releaseCalls, greaterThan(0));
+    });
+
+    test('setKeyboardLights is a no-op when unchanged', () async {
+      final lights = FakeSideLightDriver(present: true);
+      final c = make(FakeStore(), FakeApi(), lights);
+      await c.setKeyboardLights(false); // already false
+      expect(lights.gauges, isEmpty);
+      expect(lights.releaseCalls, 0);
+    });
+
+    test('refresh pushes the gauge when enabled + detected', () async {
+      final store = FakeStore(
+        sessionKey: 'sk',
+        orgId: 'o',
+        settings: const Settings(keyboardLightsEnabled: true),
+      );
+      final lights = FakeSideLightDriver(present: true);
+      final c = make(store, FakeApi(), lights);
+      await c.bootstrap(); // live → refresh → push
+      expect(lights.gauges, isNotEmpty);
+    });
+
+    test('pushes nothing when the feature is off or no keyboard', () async {
+      // feature on, but no keyboard present
+      final noKb = FakeSideLightDriver(present: false);
+      final cA = make(
+        FakeStore(
+            sessionKey: 'sk',
+            orgId: 'o',
+            settings: const Settings(keyboardLightsEnabled: true)),
+        FakeApi(),
+        noKb,
+      );
+      await cA.bootstrap();
+      expect(noKb.gauges, isEmpty);
+
+      // keyboard present, but feature off
+      final off = FakeSideLightDriver(present: true);
+      final cB = make(FakeStore(sessionKey: 'sk', orgId: 'o'), FakeApi(), off);
+      await cB.bootstrap();
+      expect(off.gauges, isEmpty);
+    });
+
+    test('enabling with no usage loaded pushes nothing', () async {
+      final lights = FakeSideLightDriver(present: true);
+      final c = make(FakeStore(), FakeApi(), lights); // signedOut → usage null
+      await c.bootstrap();
+      await c.setKeyboardLights(true);
+      expect(lights.gauges, isEmpty);
+    });
+
+    test('enterDemo pushes the gauge when enabled', () async {
+      final lights = FakeSideLightDriver(present: true);
+      final c = make(
+        FakeStore(settings: const Settings(keyboardLightsEnabled: true)),
+        FakeApi(),
+        lights,
+      );
+      await c.bootstrap(); // signedOut path still detects the keyboard
+      await c.enterDemo();
+      expect(lights.gauges, isNotEmpty);
+    });
+
+    test('signOut releases the LEDs', () async {
+      final lights = FakeSideLightDriver(present: true);
+      final c = make(FakeStore(sessionKey: 'sk', orgId: 'o'), FakeApi(), lights);
+      await c.bootstrap();
+      await c.signOut();
+      expect(lights.releaseCalls, greaterThan(0));
+    });
+
+    test('dispose releases the LEDs', () async {
+      final lights = FakeSideLightDriver(present: true);
+      final c =
+          AppController(store: FakeStore(), api: FakeApi(), sideLights: lights);
+      c.dispose();
+      expect(lights.releaseCalls, 1);
     });
   });
 }

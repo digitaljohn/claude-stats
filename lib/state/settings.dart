@@ -14,6 +14,7 @@ class Settings {
     this.notificationsEnabled = true,
     this.mini = false,
     this.themeMode = AppThemeMode.dark,
+    this.keyboardLightsEnabled = false,
   });
 
   final double warnThreshold; // 0..1
@@ -25,6 +26,7 @@ class Settings {
   final bool notificationsEnabled;
   final bool mini; // compact floating-widget window mode
   final AppThemeMode themeMode; // dark (default) or light
+  final bool keyboardLightsEnabled; // mirror usage to NuPhy side LEDs
 
   Settings copyWith({
     double? warnThreshold,
@@ -36,6 +38,7 @@ class Settings {
     bool? notificationsEnabled,
     bool? mini,
     AppThemeMode? themeMode,
+    bool? keyboardLightsEnabled,
   }) =>
       Settings(
         warnThreshold: warnThreshold ?? this.warnThreshold,
@@ -47,6 +50,8 @@ class Settings {
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
         mini: mini ?? this.mini,
         themeMode: themeMode ?? this.themeMode,
+        keyboardLightsEnabled:
+            keyboardLightsEnabled ?? this.keyboardLightsEnabled,
       );
 
   Map<String, dynamic> toJson() => {
@@ -59,6 +64,7 @@ class Settings {
         'notify': notificationsEnabled,
         'mini': mini,
         'theme': themeMode.name, // 'dark' | 'light'
+        'kbLights': keyboardLightsEnabled,
       };
 
   factory Settings.fromJson(Map<String, dynamic> j) => Settings(
@@ -72,6 +78,7 @@ class Settings {
         mini: j['mini'] as bool? ?? false,
         // Backwards-compatible: existing files have no 'theme' key → dark.
         themeMode: j['theme'] == 'light' ? AppThemeMode.light : AppThemeMode.dark,
+        keyboardLightsEnabled: j['kbLights'] as bool? ?? false,
       );
 
   String encode() => jsonEncode(toJson());

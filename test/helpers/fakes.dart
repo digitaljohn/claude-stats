@@ -1,4 +1,5 @@
 import 'package:claude_stats/data/claude_api.dart';
+import 'package:claude_stats/data/keyboard/side_lights.dart';
 import 'package:claude_stats/data/session_store.dart';
 import 'package:claude_stats/data/update_checker.dart';
 import 'package:claude_stats/models/account.dart';
@@ -140,6 +141,29 @@ class FakeApi extends ClaudeApiClient {
   void dispose() => disposed = true;
 }
 
+/// A [SideLightDriver] that records what it was asked to do instead of touching
+/// any real keyboard.
+class FakeSideLightDriver implements SideLightDriver {
+  FakeSideLightDriver({this.present = false});
+
+  bool present; // what detect() reports
+  int detectCalls = 0;
+  final List<SideGauge> gauges = [];
+  int releaseCalls = 0;
+
+  @override
+  Future<bool> detect() async {
+    detectCalls++;
+    return present;
+  }
+
+  @override
+  Future<void> setGauge(SideGauge gauge) async => gauges.add(gauge);
+
+  @override
+  Future<void> release() async => releaseCalls++;
+}
+
 /// An [UpdateChecker] that returns a fixed [result] without touching the network.
 class FakeUpdateChecker extends UpdateChecker {
   FakeUpdateChecker({this.result});
@@ -200,14 +224,17 @@ AppController readyController({
   String? error,
   DateTime? lastUpdated,
   bool refreshing = false,
+  bool keyboardDetected = false,
   FakeStore? store,
   FakeApi? api,
+  FakeSideLightDriver? sideLights,
   UpdateInfo? availableUpdate,
   Future<bool> Function(Uri)? urlLauncher,
 }) {
   final c = AppController(
     store: store ?? FakeStore(),
     api: api ?? FakeApi(),
+    sideLights: sideLights ?? FakeSideLightDriver(),
     urlLauncher: urlLauncher,
   );
   c.mode = mode;
@@ -218,6 +245,7 @@ AppController readyController({
   c.error = error;
   c.lastUpdated = lastUpdated;
   c.refreshing = refreshing;
+  c.keyboardDetected = keyboardDetected;
   c.availableUpdate = availableUpdate;
   return c;
 }

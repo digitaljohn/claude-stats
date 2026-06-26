@@ -7,6 +7,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../data/claude_api.dart';
 import '../data/demo_data.dart';
+import '../data/keyboard/side_lights.dart';
 import '../data/session_store.dart';
 import '../data/update_checker.dart';
 import '../models/account.dart';
@@ -24,15 +25,18 @@ class AppController extends ChangeNotifier {
     ClaudeApiClient? api,
     UpdateChecker? updateChecker,
     Future<bool> Function(Uri)? urlLauncher,
+    SideLightDriver? sideLights,
   })  : _store = store ?? SessionStore(),
         _api = api ?? ClaudeApiClient(),
         _updateChecker = updateChecker ?? UpdateChecker(),
-        _launchUrl = urlLauncher ?? _defaultLaunch;
+        _launchUrl = urlLauncher ?? _defaultLaunch,
+        _sideLights = sideLights ?? MethodChannelSideLightDriver();
 
   final SessionStore _store;
   final ClaudeApiClient _api;
   final UpdateChecker _updateChecker;
   final Future<bool> Function(Uri) _launchUrl;
+  final SideLightDriver _sideLights;
 
   // coverage:ignore-start
   static Future<bool> _defaultLaunch(Uri uri) =>
@@ -50,6 +54,7 @@ class AppController extends ChangeNotifier {
   String? signInError; // sign-in attempt error
   DateTime? lastUpdated;
   UpdateInfo? availableUpdate; // newer GitHub release, if any
+  bool keyboardDetected = false; // a NuPhy side-light keyboard is reachable
 
   String? _sessionKey;
   String? _orgId;
@@ -77,6 +82,7 @@ class AppController extends ChangeNotifier {
   Future<void> bootstrap() async {
     settings = await _store.readSettings();
     _applyTheme();
+    keyboardDetected = await _sideLights.detect();
     if (const bool.fromEnvironment('mini')) {
       settings = settings.copyWith(mini: true); // coverage:ignore-line
     }
@@ -151,6 +157,7 @@ class AppController extends ChangeNotifier {
     _orgId = accounts.first.id;
     lastUpdated = DateTime.now();
     notifyListeners();
+    await _pushSideLights();
   }
 
   Future<bool> signIn(String rawKey) async {
@@ -215,8 +222,42 @@ class AppController extends ChangeNotifier {
     accounts = [];
     _dangerNotified.clear();
     await _store.clearCredentials();
+    await _sideLights.release(); // hand the side LEDs back to the keyboard
     mode = AppMode.signedOut;
     notifyListeners();
+  }
+
+  // ── keyboard side lights ─────────────────────────────────────────────────
+
+  /// Turns the NuPhy side-light mirroring on/off, persisting the choice and
+  /// either pushing the current gauge or releasing the LEDs.
+  Future<void> setKeyboardLights(bool on) async {
+    if (settings.keyboardLightsEnabled == on) return;
+    settings = settings.copyWith(keyboardLightsEnabled: on);
+    notifyListeners();
+    await _store.writeSettings(settings);
+    if (on) {
+      await _pushSideLights();
+    } else {
+      await _sideLights.release();
+    }
+  }
+
+  /// Pushes the current session/weekly usage to the keyboard's side strips
+  /// (left = session, right = weekly), coloured by the warn/danger zones.
+  /// No-op unless the feature is on, a keyboard is present, and usage is loaded.
+  Future<void> _pushSideLights() async {
+    if (!settings.keyboardLightsEnabled || !keyboardDetected) return;
+    final u = usage;
+    if (u == null) return;
+    await _sideLights.setGauge(SideGauge(
+      leftPct: sidePercent(u.session.utilization),
+      left: sideZoneColor(u.session.utilization,
+          warnAt: settings.warnThreshold, dangerAt: settings.dangerThreshold),
+      rightPct: sidePercent(u.weekly.utilization),
+      right: sideZoneColor(u.weekly.utilization,
+          warnAt: settings.warnThreshold, dangerAt: settings.dangerThreshold),
+    ));
   }
 
   // ── refresh ────────────────────────────────────────────────────────────
@@ -230,6 +271,7 @@ class AppController extends ChangeNotifier {
       lastUpdated = DateTime.now();
       refreshing = false;
       notifyListeners();
+      await _pushSideLights();
       return;
     }
     if (mode != AppMode.live || _sessionKey == null || _orgId == null) return;
@@ -243,6 +285,7 @@ class AppController extends ChangeNotifier {
       lastUpdated = snap.fetchedAt;
       await _recordHistory(snap);
       _maybeNotify(snap);
+      await _pushSideLights();
     } on ClaudeApiException catch (e) {
       error = e.message;
     } catch (e) {
@@ -379,6 +422,7 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
+    _sideLights.release(); // best-effort: don't leave the LEDs frozen
     _api.dispose();
     _updateChecker.dispose();
     super.dispose();

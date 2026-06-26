@@ -105,6 +105,59 @@ void main() {
     expect(AppColors.current, AppPalette.dark);
   });
 
+  testWidgets('keyboard card is hidden when no keyboard is detected',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(mode: AppMode.live, store: FakeStore());
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(
+      SettingsPanel(controller: c, onClose: () {}),
+      size: const Size(420, 1500),
+    ));
+    expect(find.text('NuPhy side lights'), findsNothing);
+  });
+
+  testWidgets('keyboard card: experimental tag, switch, firmware-guide link',
+      (tester) async {
+    await useTallSurface(tester);
+    final launched = <Uri>[];
+    final c = readyController(
+      mode: AppMode.demo,
+      usage: screenSnapshot(),
+      keyboardDetected: true,
+      urlLauncher: (u) async {
+        launched.add(u);
+        return true;
+      },
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(
+      SettingsPanel(controller: c, onClose: () {}),
+      size: const Size(420, 1500),
+    ));
+
+    expect(find.text('KEYBOARD'), findsOneWidget);
+    expect(find.text('VERY EXPERIMENTAL'), findsOneWidget);
+    expect(find.text('NuPhy side lights'), findsOneWidget);
+    expect(c.settings.keyboardLightsEnabled, false);
+
+    final kbSwitch = find.descendant(
+      of: find
+          .ancestor(
+              of: find.text('NuPhy side lights'), matching: find.byType(Row))
+          .first,
+      matching: find.byType(Switch),
+    );
+    await tester.tap(kbSwitch);
+    await tester.pump();
+    expect(c.settings.keyboardLightsEnabled, true);
+
+    // The firmware setup guide opens the GitHub README.
+    await tester.tap(find.text('Firmware setup guide'));
+    await tester.pump();
+    expect(launched.single.toString(), contains('firmware/README.md'));
+  });
+
   testWidgets('hovering the danger button changes its background', (tester) async {
     await useTallSurface(tester);
     final c = readyController(mode: AppMode.live, store: FakeStore());
