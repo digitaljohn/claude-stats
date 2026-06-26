@@ -105,6 +105,48 @@ void main() {
     expect(AppColors.current, AppPalette.dark);
   });
 
+  testWidgets('keyboard card is hidden when no keyboard is detected',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(mode: AppMode.live, store: FakeStore());
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(
+      SettingsPanel(controller: c, onClose: () {}),
+      size: const Size(420, 1500),
+    ));
+    expect(find.text('NuPhy side lights'), findsNothing);
+  });
+
+  testWidgets('keyboard card appears when detected and its switch toggles',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(
+      mode: AppMode.demo,
+      usage: screenSnapshot(),
+      keyboardDetected: true,
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(
+      SettingsPanel(controller: c, onClose: () {}),
+      size: const Size(420, 1500),
+    ));
+
+    expect(find.text('KEYBOARD'), findsOneWidget);
+    expect(find.text('NuPhy side lights'), findsOneWidget);
+    expect(c.settings.keyboardLightsEnabled, false);
+
+    final kbSwitch = find.descendant(
+      of: find
+          .ancestor(
+              of: find.text('NuPhy side lights'), matching: find.byType(Row))
+          .first,
+      matching: find.byType(Switch),
+    );
+    await tester.tap(kbSwitch);
+    await tester.pump();
+    expect(c.settings.keyboardLightsEnabled, true);
+  });
+
   testWidgets('hovering the danger button changes its background', (tester) async {
     await useTallSurface(tester);
     final c = readyController(mode: AppMode.live, store: FakeStore());

@@ -15,6 +15,7 @@ void main() {
     expect(s.notificationsEnabled, true);
     expect(s.mini, false);
     expect(s.themeMode, AppThemeMode.dark); // dark by default
+    expect(s.keyboardLightsEnabled, false);
   });
 
   test('copyWith overrides every field', () {
@@ -29,6 +30,7 @@ void main() {
       notificationsEnabled: false,
       mini: true,
       themeMode: AppThemeMode.light,
+      keyboardLightsEnabled: true,
     );
     expect(n.warnThreshold, 0.6);
     expect(n.dangerThreshold, 0.8);
@@ -39,6 +41,7 @@ void main() {
     expect(n.notificationsEnabled, false);
     expect(n.mini, true);
     expect(n.themeMode, AppThemeMode.light);
+    expect(n.keyboardLightsEnabled, true);
   });
 
   test('copyWith with no args preserves all fields', () {
@@ -52,6 +55,7 @@ void main() {
       notificationsEnabled: false,
       mini: true,
       themeMode: AppThemeMode.light,
+      keyboardLightsEnabled: true,
     );
     final n = s.copyWith();
     expect(n.encode(), s.encode());
@@ -68,6 +72,7 @@ void main() {
       notificationsEnabled: false,
       mini: true,
       themeMode: AppThemeMode.light,
+      keyboardLightsEnabled: true,
     );
     final decoded = Settings.decode(s.encode());
     expect(decoded.warnThreshold, 0.7);
@@ -79,6 +84,7 @@ void main() {
     expect(decoded.notificationsEnabled, false);
     expect(decoded.mini, true);
     expect(decoded.themeMode, AppThemeMode.light);
+    expect(decoded.keyboardLightsEnabled, true);
   });
 
   test('fromJson falls back to defaults for missing keys', () {
@@ -92,6 +98,7 @@ void main() {
     expect(s.notificationsEnabled, true);
     expect(s.mini, false);
     expect(s.themeMode, AppThemeMode.dark);
+    expect(s.keyboardLightsEnabled, false);
   });
 
   test('legacy settings without a theme key decode as dark (backwards-compat)',

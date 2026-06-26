@@ -138,6 +138,31 @@ class SettingsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
+          // Keyboard side lights — only when a NuPhy keyboard is detected.
+          if (controller.keyboardDetected) ...[
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SectionLabel('Keyboard'),
+                  const SizedBox(height: 6),
+                  _ToggleRow(
+                    label: 'NuPhy side lights',
+                    value: s.keyboardLightsEnabled,
+                    onChanged: controller.setKeyboardLights,
+                    last: true,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Mirror session (left) + weekly (right) onto the side strips.',
+                    style: AppText.label(AppColors.textFaint).copyWith(height: 1.35),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           // Account
           AppCard(
             child: Row(

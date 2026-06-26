@@ -20,7 +20,8 @@ void main() {
   testWidgets('ClaudeStatsApp routes every controller mode', (tester) async {
     // ClaudeStatsApp.dispose() disposes the controller on unmount, so no
     // addTearDown here (that would double-dispose the ChangeNotifier).
-    final c = AppController(store: FakeStore(), api: FakeApi());
+    final c = AppController(
+        store: FakeStore(), api: FakeApi(), sideLights: FakeSideLightDriver());
 
     await tester.pumpWidget(app.ClaudeStatsApp(controller: c));
     // First frame, before bootstrap resolves: the loading scaffold.
