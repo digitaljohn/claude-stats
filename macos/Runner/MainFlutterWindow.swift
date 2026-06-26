@@ -47,6 +47,16 @@ final class SideLightPlugin {
     IOHIDManagerSetDeviceMatching(manager, match as CFDictionary)
     IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
     IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+
+    // Hand the side LEDs back to the keyboard's own lighting on quit. `queue:
+    // nil` runs the block synchronously on the main thread as the app
+    // terminates, so the release report goes out before the process exits —
+    // the async Dart dispose() path can't guarantee that.
+    NotificationCenter.default.addObserver(
+      forName: NSApplication.willTerminateNotification, object: nil, queue: nil
+    ) { [weak self] _ in
+      self?.send([0xC0])
+    }
   }
 
   static func register(with messenger: FlutterBinaryMessenger) -> SideLightPlugin {
