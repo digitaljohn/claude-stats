@@ -130,10 +130,11 @@ static void cs_gauge_render(void) {
     for (uint8_t line = 0; line < SIDE_LINE; line++) {
         uint8_t l = side_led_index_tab[line][0]; // left strip  (LEDs 5..0)
         uint8_t r = side_led_index_tab[line][1]; // right strip (LEDs 6..11)
-        if (line < ln) side_rgb_set_color(l, cs_lr, cs_lg, cs_lb);
-        else           side_rgb_set_color(l, 0, 0, 0);
-        if (line < rn) side_rgb_set_color(r, cs_rr, cs_rg, cs_rb);
-        else           side_rgb_set_color(r, 0, 0, 0);
+        // fill from the bottom up: light the last `ln`/`rn` lines
+        if (line >= SIDE_LINE - ln) side_rgb_set_color(l, cs_lr, cs_lg, cs_lb);
+        else                        side_rgb_set_color(l, 0, 0, 0);
+        if (line >= SIDE_LINE - rn) side_rgb_set_color(r, cs_rr, cs_rg, cs_rb);
+        else                        side_rgb_set_color(r, 0, 0, 0);
     }
 }
 ```

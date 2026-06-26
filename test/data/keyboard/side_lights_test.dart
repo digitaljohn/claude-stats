@@ -6,14 +6,14 @@ void main() {
   group('sideZoneColor', () {
     SideColor z(double u) => sideZoneColor(u, warnAt: 0.75, dangerAt: 0.90);
 
-    test('green below warn, amber in the warn band, red above danger', () {
-      expect((z(0.50).r, z(0.50).g, z(0.50).b), (0, 255, 60)); // green
-      expect((z(0.80).r, z(0.80).g, z(0.80).b), (255, 150, 0)); // amber
+    test('cream below warn, amber in the warn band, red above danger', () {
+      expect((z(0.50).r, z(0.50).g, z(0.50).b), (0xF5, 0xF4, 0xEE)); // cream
+      expect((z(0.80).r, z(0.80).g, z(0.80).b), (255, 100, 0)); // amber
       expect((z(0.95).r, z(0.95).g, z(0.95).b), (255, 0, 0)); // red
     });
 
     test('thresholds are inclusive', () {
-      expect((z(0.75).r, z(0.75).g, z(0.75).b), (255, 150, 0)); // == warn → amber
+      expect((z(0.75).r, z(0.75).g, z(0.75).b), (255, 100, 0)); // == warn → amber
       expect((z(0.90).r, z(0.90).g, z(0.90).b), (255, 0, 0)); // == danger → red
     });
   });

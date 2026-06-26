@@ -574,7 +574,7 @@ void main() {
       expect(g.leftPct, 95); // session fill
       expect((g.left.r, g.left.g, g.left.b), (255, 0, 0)); // danger → red
       expect(g.rightPct, 50); // weekly fill
-      expect((g.right.r, g.right.g, g.right.b), (0, 255, 60)); // good → green
+      expect((g.right.r, g.right.g, g.right.b), (0xF5, 0xF4, 0xEE)); // good → cream
 
       await c.setKeyboardLights(false);
       expect(lights.releaseCalls, greaterThan(0));

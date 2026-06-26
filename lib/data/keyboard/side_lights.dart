@@ -9,19 +9,21 @@ class SideColor {
   final int b;
 }
 
-// Vivid LED zone colours — deliberately *not* the app's cream "good" token:
-// on the keyboard the user asked for a literal green→amber→red gauge.
-const SideColor _kGreen = SideColor(0, 255, 60);
-const SideColor _kAmber = SideColor(255, 150, 0);
-const SideColor _kRed = SideColor(255, 0, 0);
+// LED zone colours — hand-tuned on the actual WS2812 side strips to read like
+// the app's heat ramp (white → amber → red). These aren't the literal AppColors
+// hex: on these LEDs the app's amber (#E8A13C) looks yellow-green and its red
+// (#E5564B) looks pink, so warn/danger are pushed toward orange / pure red.
+const SideColor _kGood = SideColor(0xF5, 0xF4, 0xEE); // cream / white (= AppColors.good)
+const SideColor _kWarn = SideColor(255, 100, 0); // amber
+const SideColor _kDanger = SideColor(255, 0, 0); // red
 
 /// The zone colour for a 0..1 utilisation, using the same warn/danger
 /// thresholds the on-screen rings use.
 SideColor sideZoneColor(double util,
     {required double warnAt, required double dangerAt}) {
-  if (util >= dangerAt) return _kRed;
-  if (util >= warnAt) return _kAmber;
-  return _kGreen;
+  if (util >= dangerAt) return _kDanger;
+  if (util >= warnAt) return _kWarn;
+  return _kGood;
 }
 
 /// A 0..1 utilisation as an integer percent (0..100) for the fill height.
