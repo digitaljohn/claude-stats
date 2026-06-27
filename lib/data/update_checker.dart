@@ -13,7 +13,7 @@ import 'package:http/http.dart' as http;
 /// `version:` by a test (see test/data/update_checker_test.dart), so it can
 /// never silently drift out of sync.
 const String kAppVersion =
-    String.fromEnvironment('APP_VERSION', defaultValue: '1.1.0');
+    String.fromEnvironment('APP_VERSION', defaultValue: '1.1.1');
 
 /// A newer release found on GitHub.
 class UpdateInfo {
