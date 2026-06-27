@@ -15,9 +15,9 @@ void main() {
       expect(w.resetsAt, isNotNull);
     });
 
-    test('treats a <=1 value as already-fractional', () {
-      final w = UsageWindow.fromJson('seven_day', 'Weekly', {'utilization': 0.8});
-      expect(w.utilization, closeTo(0.8, 1e-9));
+    test('reads a value as a percentage (1 → 0.01, not maxed), no reset', () {
+      final w = UsageWindow.fromJson('seven_day', 'Weekly', {'utilization': 1});
+      expect(w.utilization, closeTo(0.01, 1e-9));
       expect(w.resetsAt, isNull);
     });
 

@@ -16,9 +16,12 @@ void main() {
       expect(w.resetsAt, isNotNull);
     });
 
-    test('treats a <=1 value as already-fractional, no reset', () {
-      final w = UsageWindow.fromJson('seven_day', 'Weekly', {'utilization': 0.8});
-      expect(w.utilization, closeTo(0.8, 1e-9));
+    test('reads a small percentage as a fraction (1 → 0.01), no reset', () {
+      // The live API sends a percentage, so `1` means 1% — not 100%. Mis-reading
+      // it as maxed used to show a 1%-used session as a full / countdown ring.
+      final w = UsageWindow.fromJson('five_hour', 'Session', const {'utilization': 1});
+      expect(w.utilization, closeTo(0.01, 1e-9));
+      expect(w.percent, 1);
       expect(w.resetsAt, isNull);
     });
 
