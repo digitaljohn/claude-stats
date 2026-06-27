@@ -45,12 +45,11 @@ void main() {
     await tester.pumpWidget(wrap(DashboardScreen(controller: c),
         size: const Size(420, 1500)));
 
-    // Demo banner + the two window cards + per-model + extra + footer.
+    // Demo banner + the two window cards + extra + footer.
     expect(find.textContaining('Demo data'), findsOneWidget);
     // SectionLabel upper-cases its text.
     expect(find.text('5-HOUR WINDOW'), findsOneWidget);
     expect(find.text('7-DAY WINDOW'), findsOneWidget);
-    expect(find.text('PER-MODEL · WEEKLY'), findsOneWidget);
     expect(find.text('EXTRA USAGE'), findsOneWidget);
     expect(find.text('DEMO DATA'), findsOneWidget);
 
@@ -97,8 +96,6 @@ void main() {
     expect(find.textContaining('Session rejected'), findsOneWidget);
     expect(find.text('LIVE'), findsOneWidget);
     expect(find.textContaining('UPDATED —'), findsOneWidget);
-    // models:false → the per-model card shows its empty state; extra is hidden.
-    expect(find.text('PER-MODEL · WEEKLY'), findsOneWidget);
     expect(find.text('EXTRA USAGE'), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
@@ -148,28 +145,6 @@ void main() {
     await tester.tap(find.text('Download'));
     await tester.pump();
     expect(launched.single.toString(), 'https://gh/rel');
-
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('per-model empty state names what the API returned',
-      (tester) async {
-    await useTallSurface(tester);
-    final c = readyController(
-      mode: AppMode.live,
-      usage: screenSnapshot(
-        models: false,
-        rawKeys: const ['five_hour', 'seven_day'],
-      ),
-      history: someHistory(),
-    );
-    addTearDown(c.dispose);
-    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
-        size: const Size(420, 1500)));
-
-    expect(find.text('PER-MODEL · WEEKLY'), findsOneWidget);
-    expect(find.textContaining('No per-model limits'), findsOneWidget);
-    expect(find.textContaining('five_hour, seven_day'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
   });

@@ -1,12 +1,15 @@
 import 'dart:convert';
 
-/// Normalises Claude's `utilization` field, which arrives as a percentage
-/// (0–100) on the live API. Values <= 1 are treated as already-fractional so
-/// the model is robust to either representation.
+/// Normalises Claude's `utilization` field — always a percentage (0–100) on the
+/// live API — to a 0..1 fraction.
+///
+/// It is *always* a percentage, so a raw `1` means **1%**, not 100%. An earlier
+/// "values <= 1 are already fractional" heuristic mis-read a 1%-used session as
+/// maxed (full ring / countdown face, spurious 100% history bars, keyboard
+/// gauge slammed to red) right at the start of a window.
 double _normalizeUtil(Object? raw) {
   final v = (raw is num) ? raw.toDouble() : double.tryParse('$raw') ?? 0.0;
-  final f = v > 1.0 ? v / 100.0 : v;
-  return f.clamp(0.0, 1.0);
+  return (v / 100.0).clamp(0.0, 1.0);
 }
 
 DateTime? _parseTs(Object? raw) {

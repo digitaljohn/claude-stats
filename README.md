@@ -8,7 +8,7 @@
 
 [![Platform](https://img.shields.io/badge/platform-macOS-1F1E1D?logo=apple)](https://github.com/digitaljohn/claude-stats)
 [![Flutter](https://img.shields.io/badge/Flutter-3.35-1F1E1D?logo=flutter)](https://flutter.dev)
-[![Tests](https://img.shields.io/badge/tests-231%20passing-D97757)](#testing)
+[![Tests](https://img.shields.io/badge/tests-230%20passing-D97757)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-D97757)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-A6A399)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/digitaljohn)
