@@ -29,7 +29,7 @@ Future<void> main() async {
 
   await windowManager.ensureInitialized();
   final options = WindowOptions(
-    size: const Size(420, 800),
+    size: const Size(420, 760),
     minimumSize: const Size(380, 560),
     maximumSize: const Size(560, 1200),
     center: true,

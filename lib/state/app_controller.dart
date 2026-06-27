@@ -330,7 +330,7 @@ class AppController extends ChangeNotifier {
     } catch (_) {/* non-desktop / not ready */}
   }
 
-  static const Size fullWindow = Size(420, 800);
+  static const Size fullWindow = Size(420, 760);
   static const Size miniWindow = Size(380, 204);
 
   Future<void> _applyWindowMode() async {
