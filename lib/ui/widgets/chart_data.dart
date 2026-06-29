@@ -84,22 +84,58 @@ List<double?> binnedSeries(
 
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/// Bottom-axis labels for the chart, left → newest-on-the-right.
+/// A relative-to-now label for a duration: "NOW", "−6H", or "−3D".
+String relLabel(Duration d) {
+  final h = d.inHours;
+  if (h <= 0) return 'NOW';
+  if (h < 48) return '−${h}H';
+  return '−${d.inDays}D';
+}
+
+String _weekdayLabel(DateTime end, int i, DateTime now) {
+  final day = end.subtract(Duration(days: 6 - i));
+  final isToday =
+      day.year == now.year && day.month == now.month && day.day == now.day;
+  return isToday ? 'Today' : _weekdays[day.weekday - 1];
+}
+
+/// Bottom-axis labels for the window ending at [end] (≤ [now]), left →
+/// right-is-newest.
 ///
-/// Week view: one short weekday per day, the rightmost being "Today". Shorter
-/// zooms: just the two honest endpoints (e.g. "−24H" … "NOW").
-List<String> axisLabels(ChartZoom zoom, DateTime now) {
+/// Live (end == now): week view shows a weekday per day ending in "Today";
+/// shorter zooms show "−24H" … "NOW". Panned into the past, the labels track the
+/// window's real edges (e.g. "−18H" … "−12H", weekday names anchored at [end]).
+List<String> axisLabels(ChartZoom zoom, DateTime end, DateTime now) {
   switch (zoom) {
     case ChartZoom.week:
-      return [
-        for (var i = 0; i < 7; i++)
-          i == 6
-              ? 'Today'
-              : _weekdays[now.subtract(Duration(days: 6 - i)).weekday - 1],
-      ];
+      return [for (var i = 0; i < 7; i++) _weekdayLabel(end, i, now)];
     case ChartZoom.day:
-      return const ['−24H', 'NOW'];
     case ChartZoom.sixHours:
-      return const ['−6H', 'NOW'];
+      final window = zoomSpecs[zoom]!.window;
+      return [
+        relLabel(now.difference(end.subtract(window))),
+        relLabel(now.difference(end)),
+      ];
   }
+}
+
+/// The window's right-edge anchor after panning [back] from [current]
+/// (null = live/now). Returns null to snap back to live when: the pan reaches or
+/// passes [now], there's no history ([earliest] null), or the history is shorter
+/// than the [window]. Otherwise it pans into the past, clamped so the oldest
+/// sample stays in view.
+DateTime? pannedAnchor({
+  required DateTime? current,
+  required Duration back,
+  required DateTime now,
+  required Duration window,
+  required DateTime? earliest,
+}) {
+  var end = (current ?? now).subtract(back);
+  if (!end.isBefore(now)) return null; // at / past the present → live
+  if (earliest == null) return null; // nothing recorded yet
+  final minEnd = earliest.add(window);
+  if (!minEnd.isBefore(now)) return null; // less than one window of history
+  if (end.isBefore(minEnd)) end = minEnd; // don't scroll past the oldest data
+  return end;
 }

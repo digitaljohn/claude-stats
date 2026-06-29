@@ -24,6 +24,9 @@ class HistoryChartCard extends StatelessWidget {
     required this.warnAt,
     required this.dangerAt,
     required this.now,
+    this.end,
+    this.onPan,
+    this.onJumpToNow,
     required this.onSeries,
     required this.onZoom,
   });
@@ -36,14 +39,27 @@ class HistoryChartCard extends StatelessWidget {
   final double warnAt;
   final double dangerAt;
   final DateTime now;
+
+  /// The window's right edge. Null = live (= [now]); otherwise the chart is
+  /// panned back to this moment.
+  final DateTime? end;
+
+  /// Horizontal-drag handler: [back] > 0 pans into the past. Null disables pan.
+  final ValueChanged<Duration>? onPan;
+
+  /// Tapped from the read-out when panned, to snap back to the present.
+  final VoidCallback? onJumpToNow;
+
   final ValueChanged<ChartSeries> onSeries;
   final ValueChanged<ChartZoom> onZoom;
 
   @override
   Widget build(BuildContext context) {
     final spec = zoomSpecs[zoom]!;
+    final viewEnd = end ?? now; // window right edge (now when live)
+    final live = end == null;
     final bins = binnedSeries(history, series,
-        now: now, window: spec.window, bins: spec.bins);
+        now: viewEnd, window: spec.window, bins: spec.bins);
     final color =
         AppColors.heat(currentUtil, warnAt: warnAt, dangerAt: dangerAt);
 
@@ -73,45 +89,77 @@ class HistoryChartCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppDims.radiusSm),
-              border: Border.all(color: AppColors.border),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: SizedBox(
-              height: 150,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: ChartColumns(
-                      bins: bins,
-                      gridEvery: spec.gridEvery,
-                      warnAt: warnAt,
-                      dangerAt: dangerAt,
-                    ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final Widget chart = Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppDims.radiusSm),
+                  border: Border.all(color: AppColors.border),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: SizedBox(
+                  height: 150,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ChartColumns(
+                          bins: bins,
+                          gridEvery: spec.gridEvery,
+                          warnAt: warnAt,
+                          dangerAt: dangerAt,
+                        ),
+                      ),
+                      Positioned(
+                        left: 12,
+                        top: 10,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('$percent%', style: AppText.stat(color)),
+                            if (live)
+                              Text('NOW',
+                                  style:
+                                      AppText.mono(AppColors.textFaint, size: 9))
+                            else
+                              GestureDetector(
+                                onTap: onJumpToNow,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.fast_forward_rounded,
+                                        size: 11, color: AppColors.accent),
+                                    const SizedBox(width: 3),
+                                    Text('NOW',
+                                        style: AppText.mono(
+                                            AppColors.accent, size: 9)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        left: 3,
+                        right: 3,
+                        bottom: 5,
+                        child: _AxisLabels(zoom: zoom, end: viewEnd, now: now),
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    left: 12,
-                    top: 10,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('$percent%', style: AppText.stat(color)),
-                        Text('NOW',
-                            style: AppText.mono(AppColors.textFaint, size: 9)),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    left: 3,
-                    right: 3,
-                    bottom: 5,
-                    child: _AxisLabels(zoom: zoom, now: now),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+              if (onPan == null) return chart;
+              return MouseRegion(
+                cursor: SystemMouseCursors.grab,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragUpdate: (d) =>
+                      onPan!(spec.window * (d.primaryDelta! / width)),
+                  child: chart,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -122,13 +170,14 @@ class HistoryChartCard extends StatelessWidget {
 /// Bottom axis. Week zoom: a weekday centred under each day section. Shorter
 /// zooms: the two honest endpoints (e.g. "−24H" … "NOW").
 class _AxisLabels extends StatelessWidget {
-  const _AxisLabels({required this.zoom, required this.now});
+  const _AxisLabels({required this.zoom, required this.end, required this.now});
   final ChartZoom zoom;
+  final DateTime end;
   final DateTime now;
 
   @override
   Widget build(BuildContext context) {
-    final labels = axisLabels(zoom, now);
+    final labels = axisLabels(zoom, end, now);
     final style = AppText.mono(AppColors.textFaint, size: 9);
     if (zoom == ChartZoom.week) {
       return Row(

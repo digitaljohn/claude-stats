@@ -8,7 +8,7 @@
 
 [![Platform](https://img.shields.io/badge/platform-macOS-1F1E1D?logo=apple)](https://github.com/digitaljohn/claude-stats)
 [![Flutter](https://img.shields.io/badge/Flutter-3.35-1F1E1D?logo=flutter)](https://flutter.dev)
-[![Tests](https://img.shields.io/badge/tests-230%20passing-D97757)](#testing)
+[![Tests](https://img.shields.io/badge/tests-242%20passing-D97757)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-D97757)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-A6A399)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/digitaljohn)
@@ -66,8 +66,11 @@ people who type `flutter run` for fun.
   weekly**, each a 6-LED fill that runs white → amber → red. A toggle appears
   under **Settings → Keyboard** only when a compatible keyboard is detected.
   Needs a one-time custom-firmware flash — see [`firmware/`](firmware/README.md).
-- **7-day history chart** — a crisp `CustomPaint` column chart that goes cream →
-  amber → red exactly where you breached a threshold.
+- **Pannable history chart** — a crisp `CustomPaint` column chart that goes cream
+  → amber → red exactly where you breached a threshold. **Drag to scroll back in
+  time** at the same granularity (so 6H view → pan back hour by hour), with a
+  jump-to-now button. History is kept for ~a month. (Claude exposes no historical
+  usage, so the chart is built from what the app records while it's running.)
 - **Auto-refresh** every 1 / 5 / 15 / 30 min, with **desktop notifications**
   when you cross your warn/danger thresholds.
 - **Update checks** — compares your version against the latest GitHub release

@@ -34,8 +34,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ChartSeries _series = ChartSeries.session;
   ChartZoom _zoom = ChartZoom.week;
   bool _showSettings = const bool.fromEnvironment('settings');
+  DateTime? _chartEnd; // chart window right edge; null = live
 
   AppController get c => widget.controller;
+
+  /// Drag-to-pan the history chart: [back] > 0 scrolls into the past, clamped to
+  /// the recorded history (or snaps back to live).
+  void _panChart(Duration back) {
+    setState(() {
+      _chartEnd = pannedAnchor(
+        current: _chartEnd,
+        back: back,
+        now: DateTime.now(),
+        window: zoomSpecs[_zoom]!.window,
+        earliest: c.history.isEmpty ? null : c.history.first.t,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +228,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       warnAt: settings.warnThreshold,
       dangerAt: settings.dangerThreshold,
       now: DateTime.now(),
+      end: _chartEnd,
+      onPan: _panChart,
+      onJumpToNow: () => setState(() => _chartEnd = null),
       onSeries: (v) => setState(() => _series = v),
       onZoom: (v) => setState(() => _zoom = v),
     );

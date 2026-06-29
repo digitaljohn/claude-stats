@@ -311,9 +311,9 @@ void main() {
       expect(c.history.length, 2);
     });
 
-    test('drops samples older than the 8-day cutoff', () async {
+    test('drops samples older than the 31-day cutoff', () async {
       final old = HistoryPoint(
-          t: DateTime.now().subtract(const Duration(days: 9)),
+          t: DateTime.now().subtract(const Duration(days: 32)),
           session: 0.1,
           weekly: 0.1);
       final store = FakeStore(sessionKey: 'sk', orgId: 'o', history: [old]);
@@ -321,15 +321,15 @@ void main() {
         ..snapshotBuilder = () => FakeApi.snapshotWith(fetchedAt: DateTime.now());
       final c = make(store, api);
       await c.bootstrap();
-      // The 9-day-old point is gone; only the fresh sample remains.
-      expect(c.history.every((p) => p.t.isAfter(DateTime.now().subtract(const Duration(days: 8)))), true);
+      // The 32-day-old point is gone; only the fresh sample remains.
+      expect(c.history.every((p) => p.t.isAfter(DateTime.now().subtract(const Duration(days: 31)))), true);
       expect(c.history.length, 1);
     });
 
-    test('caps history at 4000 samples', () async {
+    test('caps history at 24000 samples', () async {
       final base = DateTime.now().subtract(const Duration(hours: 1));
       final many = [
-        for (var i = 0; i < 4001; i++)
+        for (var i = 0; i < 24001; i++)
           HistoryPoint(t: base.add(Duration(milliseconds: i)), session: 0.1, weekly: 0.1),
       ];
       final store = FakeStore(sessionKey: 'sk', orgId: 'o', history: many);
@@ -337,7 +337,7 @@ void main() {
         ..snapshotBuilder = () => FakeApi.snapshotWith(fetchedAt: DateTime.now());
       final c = make(store, api);
       await c.bootstrap();
-      expect(c.history.length, 4000);
+      expect(c.history.length, 24000);
     });
   });
 

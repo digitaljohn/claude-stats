@@ -8,6 +8,7 @@ import 'package:claude_stats/state/app_controller.dart';
 import 'package:claude_stats/ui/dashboard_screen.dart';
 import 'package:claude_stats/ui/settings_panel.dart';
 import 'package:claude_stats/ui/widgets/account_switcher.dart';
+import 'package:claude_stats/ui/widgets/chart_columns.dart';
 import 'package:claude_stats/ui/widgets/window_scaffold.dart';
 
 import '../helpers/fakes.dart';
@@ -169,6 +170,34 @@ void main() {
     await tester.tap(find.widgetWithIcon(TitleBarButton, Icons.coffee_rounded));
     await tester.pump(const Duration(milliseconds: 350)); // DragToMoveArea arena
     expect(launched.single.toString(), 'https://www.buymeacoffee.com/digitaljohn');
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('history chart pans on drag and jumps back to now',
+      (tester) async {
+    await useTallSurface(tester);
+    final c = readyController(
+      mode: AppMode.demo,
+      usage: screenSnapshot(),
+      history: someHistory(),
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(wrap(DashboardScreen(controller: c),
+        size: const Size(420, 1500)));
+
+    // 6H zoom: the history spans far more than 6h, so it's pannable.
+    await tester.tap(find.text('6H'));
+    await tester.pump();
+    expect(find.byIcon(Icons.fast_forward_rounded), findsNothing); // live
+
+    await tester.drag(find.byType(ChartColumns), const Offset(150, 0));
+    await tester.pump();
+    expect(find.byIcon(Icons.fast_forward_rounded), findsOneWidget); // panned
+
+    await tester.tap(find.byIcon(Icons.fast_forward_rounded));
+    await tester.pump();
+    expect(find.byIcon(Icons.fast_forward_rounded), findsNothing); // back to live
 
     await tester.pumpWidget(const SizedBox());
   });
