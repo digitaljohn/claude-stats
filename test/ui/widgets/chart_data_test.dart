@@ -86,16 +86,115 @@ void main() {
   group('axisLabels', () {
     const weekdays = {'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'};
 
-    test('week → 7 day labels ending in Today', () {
-      final labels = axisLabels(ChartZoom.week, now);
+    test('live: week → 7 day labels ending in Today', () {
+      final labels = axisLabels(ChartZoom.week, now, now);
       expect(labels.length, 7);
       expect(labels.last, 'Today');
       expect(labels.take(6).every(weekdays.contains), isTrue);
     });
 
-    test('shorter zooms → honest endpoints', () {
-      expect(axisLabels(ChartZoom.day, now), ['−24H', 'NOW']);
-      expect(axisLabels(ChartZoom.sixHours, now), ['−6H', 'NOW']);
+    test('live: shorter zooms → honest endpoints', () {
+      expect(axisLabels(ChartZoom.day, now, now), ['−24H', 'NOW']);
+      expect(axisLabels(ChartZoom.sixHours, now, now), ['−6H', 'NOW']);
+    });
+
+    test('panned: short zooms label the real window edges', () {
+      // 6h window ending 12h before now → −18H … −12H.
+      final end = now.subtract(const Duration(hours: 12));
+      expect(axisLabels(ChartZoom.sixHours, end, now), ['−18H', '−12H']);
+      // multi-day offsets render in days.
+      final end2 = now.subtract(const Duration(days: 3));
+      expect(axisLabels(ChartZoom.day, end2, now), ['−4D', '−3D']);
+    });
+
+    test('panned: week loses "Today", weekday names anchored at end', () {
+      final labels = axisLabels(
+          ChartZoom.week, now.subtract(const Duration(days: 3)), now);
+      expect(labels.length, 7);
+      expect(labels.contains('Today'), isFalse);
+      expect(labels.every(weekdays.contains), isTrue);
+    });
+  });
+
+  group('relLabel', () {
+    test('NOW / hours / days', () {
+      expect(relLabel(Duration.zero), 'NOW');
+      expect(relLabel(const Duration(hours: -1)), 'NOW'); // clamped
+      expect(relLabel(const Duration(hours: 6)), '−6H');
+      expect(relLabel(const Duration(hours: 47)), '−47H');
+      expect(relLabel(const Duration(hours: 48)), '−2D');
+      expect(relLabel(const Duration(days: 3)), '−3D');
+    });
+  });
+
+  group('pannedAnchor', () {
+    const window = Duration(hours: 6);
+    final earliest = now.subtract(const Duration(days: 5)); // plenty of history
+
+    test('panning back from live returns the past edge', () {
+      expect(
+          pannedAnchor(
+              current: null,
+              back: const Duration(hours: 12),
+              now: now,
+              window: window,
+              earliest: earliest),
+          now.subtract(const Duration(hours: 12)));
+    });
+
+    test('accumulates from the current anchor', () {
+      expect(
+          pannedAnchor(
+              current: now.subtract(const Duration(hours: 12)),
+              back: const Duration(hours: 6),
+              now: now,
+              window: window,
+              earliest: earliest),
+          now.subtract(const Duration(hours: 18)));
+    });
+
+    test('a forward pan to/past now snaps to live (null)', () {
+      expect(
+          pannedAnchor(
+              current: now.subtract(const Duration(hours: 3)),
+              back: const Duration(hours: -6),
+              now: now,
+              window: window,
+              earliest: earliest),
+          isNull);
+    });
+
+    test('no history → live', () {
+      expect(
+          pannedAnchor(
+              current: null,
+              back: const Duration(hours: 6),
+              now: now,
+              window: window,
+              earliest: null),
+          isNull);
+    });
+
+    test('history shorter than the window → live', () {
+      expect(
+          pannedAnchor(
+              current: null,
+              back: const Duration(hours: 6),
+              now: now,
+              window: window,
+              earliest: now.subtract(const Duration(hours: 3))),
+          isNull);
+    });
+
+    test('clamps so the oldest sample stays in view', () {
+      expect(
+          pannedAnchor(
+              current: null,
+              back: const Duration(days: 10), // way past the oldest
+              now: now,
+              window: window,
+              earliest: earliest),
+          earliest.add(window));
     });
   });
 }

@@ -371,10 +371,12 @@ class AppController extends ChangeNotifier {
         weekly: snap.weekly.utilization,
       ),
     ];
-    final cutoff = DateTime.now().subtract(const Duration(days: 8));
+    // Keep ~a month so the chart can be panned back that far; the 2-minute
+    // de-dupe caps a full month at ~22k points, so 24k is a safe backstop.
+    final cutoff = DateTime.now().subtract(const Duration(days: 31));
     history = history.where((p) => p.t.isAfter(cutoff)).toList();
-    if (history.length > 4000) {
-      history = history.sublist(history.length - 4000);
+    if (history.length > 24000) {
+      history = history.sublist(history.length - 24000);
     }
     if (_orgId != null) await _store.writeHistoryFor(_orgId!, history);
   }

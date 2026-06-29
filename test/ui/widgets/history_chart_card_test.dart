@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:claude_stats/models/usage.dart';
+import 'package:claude_stats/ui/widgets/chart_columns.dart';
 import 'package:claude_stats/ui/widgets/chart_data.dart';
 import 'package:claude_stats/ui/widgets/history_chart_card.dart';
 
@@ -26,8 +27,11 @@ void main() {
     WidgetTester tester, {
     required ChartSeries series,
     required ChartZoom zoom,
+    DateTime? end,
     void Function(ChartSeries)? onSeries,
     void Function(ChartZoom)? onZoom,
+    void Function(Duration)? onPan,
+    void Function()? onJumpToNow,
   }) async {
     await tester.pumpWidget(wrap(HistoryChartCard(
       history: hist(),
@@ -38,6 +42,9 @@ void main() {
       warnAt: 0.75,
       dangerAt: 0.90,
       now: now,
+      end: end,
+      onPan: onPan,
+      onJumpToNow: onJumpToNow,
       onSeries: onSeries ?? (_) {},
       onZoom: onZoom ?? (_) {},
     )));
@@ -76,6 +83,38 @@ void main() {
   testWidgets('six-hour zoom: relative endpoints on the axis', (tester) async {
     await pump(tester, series: ChartSeries.session, zoom: ChartZoom.sixHours);
     expect(find.text('−6H'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('horizontal drag pans into the past (onPan, back > 0)',
+      (tester) async {
+    var total = Duration.zero;
+    await pump(tester,
+        series: ChartSeries.session,
+        zoom: ChartZoom.sixHours,
+        onPan: (d) => total += d);
+    await tester.drag(find.byType(ChartColumns), const Offset(120, 0)); // right
+    expect(total, greaterThan(Duration.zero)); // dragging right = pan back
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('panned: axis shows the window edges + tappable jump-to-now',
+      (tester) async {
+    var jumped = false;
+    await pump(tester,
+        series: ChartSeries.session,
+        zoom: ChartZoom.sixHours,
+        end: now.subtract(const Duration(hours: 12)),
+        onJumpToNow: () => jumped = true);
+
+    expect(find.text('−12H'), findsOneWidget); // right edge, not "NOW"
+    expect(find.text('−18H'), findsOneWidget); // left edge
+    expect(find.byIcon(Icons.fast_forward_rounded), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.fast_forward_rounded));
+    await tester.pump();
+    expect(jumped, isTrue);
+
     await tester.pumpWidget(const SizedBox());
   });
 }
