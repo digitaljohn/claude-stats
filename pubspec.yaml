@@ -1,7 +1,7 @@
 name: claude_stats
 description: "A minimal, Claude-themed macOS widget that tracks your Claude.ai usage limits."
 publish_to: 'none'
-version: 1.1.1+3
+version: 1.1.2+4
 
 environment:
   sdk: ^3.9.2
